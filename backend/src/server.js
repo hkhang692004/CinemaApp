@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import { sequelize } from "./models/index.js"; // import sequelize instance
+import authRoute from "../src/routes/authRoute.js"
 
 dotenv.config();
 
@@ -8,6 +9,11 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 app.use(express.json());
+//public route
+
+app.use("/api/auth",authRoute);
+
+//private route
 
 async function startServer() {
     try {

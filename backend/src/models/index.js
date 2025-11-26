@@ -28,6 +28,7 @@ import Invoice from './Invoice.js';
 import NewsArticle from './NewsArticle.js';
 import NewsMovieLink from './NewsMovieLink.js';
 import DailyStatistic from './DailyStatistic.js';
+import Session from './Session.js';
 
 // --- Associations ---
 
@@ -42,6 +43,11 @@ LoyaltyAccount.belongsTo(User, { foreignKey: 'user_id' });
 // User - LoyaltyPointsTransaction
 User.hasMany(LoyaltyPointsTransaction, { foreignKey: 'user_id' });
 LoyaltyPointsTransaction.belongsTo(User, { foreignKey: 'user_id' });
+
+// User - Session (1 user có thể có nhiều session)
+User.hasMany(Session, { foreignKey: 'user_id' });
+Session.belongsTo(User, { foreignKey: 'user_id' });
+
 
 // Movie - Genre (Many-to-Many)
 Movie.belongsToMany(Genre, { through: MovieGenre, foreignKey: 'movie_id', otherKey: 'genre_id' });
@@ -131,4 +137,5 @@ export {
     NewsArticle,
     NewsMovieLink,
     DailyStatistic,
+    Session,
 };
