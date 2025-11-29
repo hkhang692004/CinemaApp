@@ -3,6 +3,7 @@ import { User } from "../models/User.js";
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import Session from "../models/Session.js";
+import TokenBlacklist from "../models/TokenBlacklist.js";
 import { Op } from "sequelize";
 
 
@@ -164,15 +165,35 @@ export const refreshToken = async (req, res) => {
 
 export const signOut = async (req, res) => {
     try {
-        const { refreshToken } = req.body;
-        if (!refreshToken)
-            return res.status(400).json({ message: "Thiếu refresh token" });
+        const authHeader = req.headers['authorization'];
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({ message: "Access token không hợp lệ" });
+        }
 
+        const accessToken = authHeader.split(" ")[1];
+        const { refreshToken } = req.body;
+        if (!refreshToken) {
+            return res.status(400).json({ message: "Thiếu refresh token" });
+        }
+
+        const decodeToken = jwt.decode(accessToken);
+        if (!decodeToken || !decodeToken.exp) {
+            return res.status(400).json({ message: "Access token không hợp lệ" });
+        }
+
+        const expiresAt = new Date(decodeToken.exp * 1000);
+
+       
+        await TokenBlacklist.findOrCreate({
+            where: { token: accessToken },
+            defaults: {
+                expires_at: expiresAt
+            }
+        });
 
         await Session.destroy({ where: { refresh_token: refreshToken } });
 
         return res.status(200).json({ message: "Đăng xuất thành công" });
-
 
     } catch (error) {
         console.log("Lỗi khi chạy logOut", error);

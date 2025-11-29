@@ -2,6 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import { sequelize } from "./models/index.js"; // import sequelize instance
 import authRoute from "../src/routes/authRoute.js"
+import userRoute from "../src/routes/userRoute.js"
+import { protectedRoute } from "./middlewares/authMiddleware.js";
 
 dotenv.config();
 
@@ -12,8 +14,11 @@ app.use(express.json());
 //public route
 
 app.use("/api/auth",authRoute);
-
+//authmidlleware
+app.use(protectedRoute);
 //private route
+
+app.use("/api/users",userRoute);
 
 async function startServer() {
     try {
