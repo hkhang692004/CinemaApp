@@ -1,0 +1,10 @@
+class ApiConfig {
+  static const String baseURL = "http://10.0.2.2:5001/api";
+
+  static const String signUp = "/auth/signup";
+  static const String signIn = "/auth/signin";
+  static const String refreshToken = "/auth/refresh-token";
+  static const String signOut = "/auth/signout";
+
+  static const Duration timeout = Duration(seconds: 30);
+}
