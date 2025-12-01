@@ -1,8 +1,9 @@
-import 'package:cinema_app/providers/auth_provider.dart';
-import 'package:cinema_app/screens/home_screen.dart';
-import 'package:cinema_app/screens/register_screen.dart';
+import 'package:cinema_app/screens/forgot_password_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import 'home_screen.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,14 +11,12 @@ class LoginScreen extends StatefulWidget {
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
-//
 
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-
-
+  bool _obscurePassword = true;
 
   void _handleLogin() async {
     if (!_formKey.currentState!.validate()) {
@@ -32,13 +31,11 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (success && mounted) {
-      // Đăng nhập thành công → Chuyển sang HomeScreen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
     } else if (mounted) {
-      // Đăng nhập thất bại → Hiển thị lỗi
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(authProvider.errorMessage ?? 'Đăng nhập thất bại'),
@@ -60,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFFFFFF),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -70,34 +67,94 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.movie, size: 100, color: Colors.blue),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Absolute Cinema',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                  // Logo
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE53935), // Đỏ
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.movie,
+                      size: 50,
+                      color: Colors.white,
                     ),
                   ),
 
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Absolute',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Cinema',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Đăng nhập',
+                    style: TextStyle(fontSize: 26,
+                        color: Color(0xFF1F1F1F),
+                    fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
 
-                  Text(
-                    'Đăng nhập để tiếp tục',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  // Subtitle
+                  const Text(
+                    'Chào mừng bạn trở lại Absolute Cinema.',
+                    style: TextStyle(fontSize: 16, color: Color(0xFF808080)),
+                    textAlign: TextAlign.center,
                   ),
 
-                  SizedBox(height: 40),
+                  const SizedBox(height: 40),
 
+                  // Label Email
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Email ',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Email TextField
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
+                    style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
+                      hintText: 'Nhập email hoặc số điện thoại',
+                      hintStyle: const TextStyle(color: Color(0xFF616161)),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
                       ),
                     ),
                     validator: (value) {
@@ -111,16 +168,53 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
 
-                  SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
+                  // Label Password
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Mật khẩu',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Password TextField
                   TextFormField(
                     controller: _passwordController,
-                    obscureText: true,
+                    obscureText: _obscurePassword,
+                    style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      labelText: 'Mật khẩu',
-                      prefixIcon: Icon(Icons.lock),
+                      hintText: 'Nhập mật khẩu',
+                      hintStyle: const TextStyle(color: Color(0xFF616161)),
+                      filled: true,
+                      fillColor: const Color(0xFFF3F4F6),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: const Color(0xFF9E9E9E),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
                       ),
                     ),
                     validator: (value) {
@@ -131,18 +225,44 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                   ),
 
+                  const SizedBox(height: 12),
+
+                  // Forgot Password
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ForgotPasswordScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Quên mật khẩu?',
+                        style: TextStyle(
+                          color: Color(0xFFE4080A),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+
                   const SizedBox(height: 24),
 
+                  // Login Button
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
                       onPressed: authProvider.isLoading ? null : _handleLogin,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: const Color(0xFFE53935), // Đỏ
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
+                        disabledBackgroundColor: const Color(0xFF9E9E9E),
                       ),
                       child: authProvider.isLoading
                           ? const SizedBox(
@@ -156,7 +276,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           : const Text(
                               'Đăng nhập',
                               style: TextStyle(
-                                fontSize: 18,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
@@ -164,16 +284,36 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
 
+                  // Register Button
                   TextButton(
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const RegisterScreen(),
+                        ),
                       );
                     },
-                    child: const Text('Chưa có tài khoản? Đăng ký ngay'),
+                    child: RichText(
+                      text: const TextSpan(
+                        text: 'Chưa có tài khoản? ',
+                        style: TextStyle(
+                          color: Color(0xFF9E9E9E),
+                          fontSize: 14,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: 'Đăng ký ngay',
+                            style: TextStyle(
+                              color: Color(0xFFE4080A), // Vàng
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),

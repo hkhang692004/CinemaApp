@@ -122,4 +122,53 @@ class AuthService {
       rethrow;
     }
   }
+  Future<String> sendOTP(String email) async{
+    try {
+      final url = Uri.parse('${ApiConfig.baseURL}${ApiConfig.sendOTP}');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email':email
+        }),
+      ).timeout(ApiConfig.timeout);
+      final data = json.decode(response.body);
+      if(response.statusCode == 200){
+        return data['message'];
+      }
+      else{
+        throw Exception(data['message'] ?? 'Gửi OTP thất bại');
+      }
+    }
+    catch (e) {
+      debugPrint('Lỗi Send OTP: $e');
+      rethrow;
+    }
+  }
+  Future<String> resetPassword(String email, String newPassword, String otp) async{
+    try {
+      final url = Uri.parse('${ApiConfig.baseURL}${ApiConfig.forgotPassword}');
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email':email,
+          'newPassword':newPassword,
+          'otp':otp,
+        }),
+      ).timeout(ApiConfig.timeout);
+      final data = json.decode(response.body);
+      if(response.statusCode == 200){
+        return data['message'];
+      }
+      else{
+        throw Exception(data['message'] ?? 'Đặt lại mật khẩu thất bại');
+      }
+    }
+    catch (e) {
+      debugPrint('Lỗi Forget Password: $e');
+      rethrow;
+    }
+  }
+
 }
