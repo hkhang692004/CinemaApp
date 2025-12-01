@@ -1,11 +1,15 @@
-import { Model, DataTypes } from 'sequelize';
-import { sequelize } from '../libs/db.js';
-import Role from './Role.js';
+import { Model, DataTypes } from "sequelize";
+import { sequelize } from "../libs/db.js";
+import Role from "./Role.js";
 
-
-export class User extends Model { }
-User.init({
-    id: { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+export class User extends Model {}
+User.init(
+  {
+    id: {
+      type: DataTypes.BIGINT.UNSIGNED,
+      primaryKey: true,
+      autoIncrement: true,
+    },
     role_id: { type: DataTypes.TINYINT.UNSIGNED, allowNull: false },
     email: { type: DataTypes.STRING(255), allowNull: false, unique: true },
     password_hash: { type: DataTypes.STRING(255), allowNull: false },
@@ -15,13 +19,16 @@ User.init({
     date_of_birth: { type: DataTypes.DATEONLY },
     created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
-    is_active: { type: DataTypes.BOOLEAN, defaultValue: true }
-}, {
+    is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
+    otp_code: { type: DataTypes.STRING(6) },
+    otp_expires: { type: DataTypes.DATE },
+  },
+  {
     sequelize,
-    modelName: 'User',
-    tableName: 'users',
-    timestamps: false
-});
-
+    modelName: "User",
+    tableName: "users",
+    timestamps: false,
+  }
+);
 
 export default User;

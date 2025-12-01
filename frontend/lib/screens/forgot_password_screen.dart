@@ -102,7 +102,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     SizedBox(height: 8),
                     TextFormField(
                       controller: emailController,
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.black),
                       validator: (value) {
                         if (value == null || value.isEmpty) return "Vui lòng nhập email";
                         if (!value.contains("@") || !value.contains(".")) return "Email không hợp lệ";
@@ -148,18 +148,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     Center(
                       child: Column(
                         children: [
-                          Text("Absolute Cinema", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                          Text("Absolute Cinema", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
                           SizedBox(height: 6),
                           Text(
                             "Vui lòng nhập mã OTP đã được gửi đến bạn và tạo mật khẩu mới.",
-                            style: TextStyle(color: Colors.white, fontSize: 15),
+                            style: TextStyle(color: Colors.black, fontSize: 15),
                             textAlign: TextAlign.center,
                           ),
                           SizedBox(height: 24),
                         ],
                       ),
                     ),
-                    Text("Mã OTP", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Text("Mã OTP", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                     SizedBox(height: 10),
                     PinCodeTextField(
                       length: 6,
@@ -175,15 +175,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         borderRadius: BorderRadius.circular(8),
                         fieldHeight: 44,
                         fieldWidth: 40,
-                        inactiveColor: Colors.white30,
-                        activeColor: Color(0xFFE53935),
-                        selectedColor: Colors.red,
-                        inactiveFillColor: Colors.black45,
-                        activeFillColor: Colors.black45,
-                        selectedFillColor: Colors.black,
+                        inactiveColor: Colors.grey,
+                        activeColor: Colors.grey,
+                        selectedColor: Colors.black,
+                        inactiveFillColor: Colors.white10,
+                        activeFillColor: Colors.white10,
+                        selectedFillColor: Colors.white10,
                       ),
                       enableActiveFill: true,
-                      textStyle: TextStyle(color: Colors.white, fontSize: 20),
+                      textStyle: TextStyle(color: Colors.black, fontSize: 20),
                     ),
                     Align(
                       alignment: Alignment.centerRight,
@@ -194,16 +194,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           await authProvider.sendOTP(emailController.text.trim());
                           showSnackbar("OTP đã được gửi lại!", Colors.green);
                         },
-                        child: Text("Gửi lại OTP", style: TextStyle(color: Color(0xFFE53935), decoration: TextDecoration.underline)),
+                        child: Text("Gửi lại OTP", style: TextStyle(color: Color(0xFFE53935))),
                       ),
                     ),
                     SizedBox(height: 8),
-                    Text("Mật khẩu mới", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Text("Mật khẩu mới", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                     SizedBox(height: 8),
                     TextFormField(
                       controller: newPasswordController,
                       obscureText: isObscureNew,
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.black),
                       validator: (value) {
                         if (value == null || value.length < 8) return "Mật khẩu tối thiểu 8 ký tự";
                         // Có thể thêm validate mạnh tùy nhu cầu
@@ -211,9 +211,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       },
                       decoration: InputDecoration(
                         hintText: "Nhập mật khẩu mới của bạn",
-                        hintStyle: TextStyle(color: Colors.white38),
+                        hintStyle: TextStyle(color: Colors.grey),
                         filled: true,
-                        fillColor: Colors.black45,
+                        fillColor: Color(0xFFF3F4F6),
                         suffixIcon: IconButton(
                           icon: Icon(isObscureNew ? Icons.visibility_off : Icons.visibility, color: Colors.white54),
                           onPressed: () => setState(() => isObscureNew = !isObscureNew),
@@ -223,21 +223,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                     ),
                     SizedBox(height: 10),
-                    Text("Xác nhận mật khẩu mới", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    Text("Xác nhận mật khẩu mới", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                     SizedBox(height: 8),
                     TextFormField(
                       controller: confirmPasswordController,
                       obscureText: isObscureConfirm,
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.black),
                       validator: (value) {
                         if (value != newPasswordController.text) return "Hai mật khẩu không khớp!";
                         return null;
                       },
                       decoration: InputDecoration(
                         hintText: "Xác nhận lại mật khẩu mới",
-                        hintStyle: TextStyle(color: Colors.white38),
+                        hintStyle: TextStyle(color: Colors.grey),
                         filled: true,
-                        fillColor: Colors.black45,
+                        fillColor: Color(0xFFF3F4F6),
                         suffixIcon: IconButton(
                           icon: Icon(isObscureConfirm ? Icons.visibility_off : Icons.visibility, color: Colors.white54),
                           onPressed: () => setState(() => isObscureConfirm = !isObscureConfirm),
@@ -274,7 +274,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                       child: authProvider.isLoading
                           ? CircularProgressIndicator(color: Colors.white)
-                          : Text("Đặt lại mật khẩu", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          : Text("Đặt lại mật khẩu", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,color: Colors.white)),
                     ),
                   ],
                 ],

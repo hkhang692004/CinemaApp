@@ -142,7 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.black),
                     decoration: InputDecoration(
                       hintText: 'Nhập email hoặc số điện thoại',
                       hintStyle: const TextStyle(color: Color(0xFF616161)),
@@ -189,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.black),
                     decoration: InputDecoration(
                       hintText: 'Nhập mật khẩu',
                       hintStyle: const TextStyle(color: Color(0xFF616161)),

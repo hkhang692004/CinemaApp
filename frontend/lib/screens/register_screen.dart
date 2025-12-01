@@ -188,7 +188,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _dateOfBirthController,
                   readOnly: true,
                   onTap: _selectDateOfBirth,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.black),
                   decoration: InputDecoration(
                     hintText: 'DD/MM/YYYY',
                     hintStyle: const TextStyle(color: Color(0xFF616161)),
@@ -339,7 +339,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: Colors.black),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(color: Color(0xFF616161)),
@@ -368,7 +368,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: Colors.black),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(color: Color(0xFF616161)),
