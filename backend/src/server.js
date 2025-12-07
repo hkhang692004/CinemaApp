@@ -3,8 +3,8 @@ import dotenv from "dotenv";
 import { sequelize } from "./models/index.js"; // import sequelize instance
 import authRoute from "../src/routes/authRoute.js";
 import userRoute from "../src/routes/userRoute.js";
-import movieRoute from "../src/routes/movieRoute.js"
-
+import movieRoute from "../src/routes/movieRoute.js";
+import newsRoute from "../src/routes/newsRoute.js";
 import { protectedRoute } from "./middlewares/authMiddleware.js";
 
 dotenv.config();
@@ -22,9 +22,11 @@ app.use(protectedRoute);
 
 app.use("/api/users", userRoute);
 app.use("/api/movies", movieRoute);
+app.use("/api/news", newsRoute);
 
 async function startServer() {
   try {
+
     // Đồng bộ các model với DB (tạo bảng nếu chưa có)
     await sequelize.sync({ alter: true }); // hoặc { force: true } để xóa tạo lại bảng
 

@@ -26,7 +26,6 @@ import ComboOrder from './ComboOrder.js';
 import GroupBooking from './GroupBooking.js';
 import Invoice from './Invoice.js';
 import NewsArticle from './NewsArticle.js';
-import NewsMovieLink from './NewsMovieLink.js';
 import DailyStatistic from './DailyStatistic.js';
 import Session from './Session.js';
 import TokenBlacklist from './TokenBlacklist.js';
@@ -102,9 +101,9 @@ ComboOrder.belongsTo(Combo, { foreignKey: 'combo_id' });
 Order.hasMany(Payment, { foreignKey: 'order_id' });
 Payment.belongsTo(Order, { foreignKey: 'order_id' });
 
-// NewsArticle - Movie (Many-to-Many)
-NewsArticle.belongsToMany(Movie, { through: NewsMovieLink, foreignKey: 'news_id', otherKey: 'movie_id' });
-Movie.belongsToMany(NewsArticle, { through: NewsMovieLink, foreignKey: 'movie_id', otherKey: 'news_id' });
+// NewsArticle - Movie (One-to-Many: Một phim có nhiều tin tức, một tin tức chỉ thuộc một phim)
+NewsArticle.belongsTo(Movie, { foreignKey: 'movie_id', as: 'linkedMovie' });
+Movie.hasMany(NewsArticle, { foreignKey: 'movie_id', as: 'newsArticles' });
 
 // Nếu cần, thêm các association khác ở đây...
 
@@ -136,7 +135,6 @@ export {
     GroupBooking,
     Invoice,
     NewsArticle,
-    NewsMovieLink,
     DailyStatistic,
     Session,
     TokenBlacklist,

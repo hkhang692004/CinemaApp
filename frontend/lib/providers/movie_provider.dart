@@ -1,10 +1,42 @@
+import 'dart:async';
 import 'package:cinema_app/models/movie.dart';
-
+import 'package:cinema_app/providers/auth_provider.dart';
 import 'package:cinema_app/services/movie_service.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class MovieProvider extends ChangeNotifier {
-  final MovieService _movieService = MovieService();
+  MovieService? _movieService;
+  AuthProvider? _authProvider; // Không dùng final để có thể update
+
+  MovieProvider(AuthProvider? authProvider) {
+    _authProvider = authProvider;
+    if (authProvider != null) {
+      _movieService = MovieService(authProvider);
+    }
+  }
+
+  /// Lấy MovieService, tự động khởi tạo nếu chưa có
+  MovieService get movieService {
+    if (_movieService == null) {
+      if (_authProvider == null) {
+        throw Exception('AuthProvider chưa được inject vào MovieProvider');
+      }
+      _movieService = MovieService(_authProvider!);
+    }
+    return _movieService!;
+  }
+
+  /// Update AuthProvider khi được inject từ ChangeNotifierProxyProvider
+  void updateAuthProvider(AuthProvider newAuthProvider) {
+    if (_authProvider == null) {
+      _authProvider = newAuthProvider;
+      // Khởi tạo MovieService nếu chưa có
+      if (_movieService == null) {
+        _movieService = MovieService(newAuthProvider);
+      }
+    }
+  }
 
   List<MovieModel> _nowShowingMovies = [];
   List<MovieModel> _comingSoonMovies = [];
@@ -26,13 +58,16 @@ class MovieProvider extends ChangeNotifier {
 
   String? get errorMessage => _errorMessage;
 
-  Future<void> loadNowShowingMovies(String accessToken) async {
+  Future<void> loadNowShowingMovies() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
-      _nowShowingMovies = await _movieService.getNowShowingMovies(accessToken);
+      _nowShowingMovies = await movieService.getNowShowingMovies();
       _errorMessage = null;
+      
+      // Preload ảnh poster vào cache và CHỜ xong (best practice)
+      await _preloadPosterImages(_nowShowingMovies);
 
     } catch (e) {
       debugPrint('Lỗi loadNowShowingMovies: $e');
@@ -43,13 +78,16 @@ class MovieProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadComingSoonMovies(String accessToken) async {
+  Future<void> loadComingSoonMovies() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
-      _comingSoonMovies = await _movieService.getComingSoonMovies(accessToken);
+      _comingSoonMovies = await movieService.getComingSoonMovies();
       _errorMessage = null;
+      
+      // Preload ảnh poster vào cache và CHỜ xong (best practice)
+      await _preloadPosterImages(_comingSoonMovies);
       
     } catch (e) {
       debugPrint('Lỗi loadComingSoonMovies: $e');
@@ -60,12 +98,12 @@ class MovieProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> getDetailMovie(int movieId, String accessToken) async {
+  Future<void> getDetailMovie(int movieId) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
-      _selectedMovie = await _movieService.getDetailMovie(movieId, accessToken);
+      _selectedMovie = await movieService.getDetailMovie(movieId);
       _errorMessage = null;
     } catch (e) {
       debugPrint('Lỗi getDetailMovie: $e');
@@ -76,19 +114,74 @@ class MovieProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> searchMovies(String query, String accessToken) async {
+  Future<void> searchMovies(String query) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
-      _searchResults = await _movieService.searchMovies(query, accessToken);
+      _searchResults = await movieService.searchMovies(query);
       _errorMessage = null;
+      
+      // Preload ảnh poster vào cache và CHỜ xong
+      await _preloadPosterImages(_searchResults);
     } catch (e) {
       debugPrint('Lỗi searchMovies: $e');
       _errorMessage = e.toString();
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Preload ảnh poster vào cache và return Future để có thể await (best practice)
+  /// Chờ tất cả ảnh preload xong hoặc timeout sau 5 giây
+  Future<void> _preloadPosterImages(List<MovieModel> movies) async {
+    if (movies.isEmpty) return;
+
+    final futures = <Future<void>>[];
+    int loadedCount = 0;
+    final totalImages = movies.where((m) => m.posterUrl != null && m.posterUrl!.isNotEmpty).length;
+
+    if (totalImages == 0) return;
+
+    for (final movie in movies) {
+      if (movie.posterUrl != null && movie.posterUrl!.isNotEmpty) {
+        final completer = Completer<void>();
+        
+        CachedNetworkImageProvider(movie.posterUrl!)
+            .resolve(const ImageConfiguration())
+            .addListener(
+          ImageStreamListener(
+            (ImageInfo imageInfo, bool synchronousCall) {
+              if (!completer.isCompleted) {
+                loadedCount++;
+                completer.complete();
+                debugPrint('Đã preload ảnh ($loadedCount/$totalImages): ${movie.title}');
+              }
+            },
+            onError: (exception, stackTrace) {
+              if (!completer.isCompleted) {
+                loadedCount++;
+                completer.complete(); // Complete ngay cả khi lỗi để không block
+                debugPrint('Lỗi preload ảnh ${movie.title}: $exception');
+              }
+            },
+          ),
+        );
+        
+        futures.add(completer.future);
+      }
+    }
+
+    // Chờ tất cả ảnh preload xong hoặc timeout sau 5 giây
+    try {
+      await Future.any([
+        Future.wait(futures),
+        Future.delayed(const Duration(seconds: 5)),
+      ]);
+      debugPrint('Preload hoàn thành: $loadedCount/$totalImages ảnh');
+    } catch (e) {
+      debugPrint('Lỗi khi preload ảnh: $e');
     }
   }
 }

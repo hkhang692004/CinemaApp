@@ -161,16 +161,24 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> refreshAccessToken() async {
     if (_refreshToken == null) {
       _errorMessage = 'Không có refresh token';
+      await clearAll(); // Xóa token khi không có refresh token
       return false;
     }
     try {
-      final String newAccessToken = await _authService.refreshAccessToken(_refreshToken!);
-      await saveToken(accessToken: newAccessToken, refreshToken: _refreshToken!);
+      final String newAccessToken = await _authService.refreshAccessToken(
+        _refreshToken!,
+      );
+      await saveToken(
+        accessToken: newAccessToken,
+        refreshToken: _refreshToken!,
+      );
       _errorMessage = null;
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      // Refresh token thất bại → Xóa tất cả token và user data
+      _errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
       debugPrint('Lỗi refreshAccessToken trong AuthProvider: $e');
+      await clearAll(); // QUAN TRỌNG: Xóa token khi refresh fail
       return false;
     }
   }
@@ -182,13 +190,14 @@ class AuthProvider extends ChangeNotifier {
     try {
       if (_accessToken != null && _refreshToken != null) {
         await _authService.signOut(
-            refreshToken: _refreshToken!, accessToken: _accessToken!);
+          refreshToken: _refreshToken!,
+          accessToken: _accessToken!,
+        );
       }
       await clearAll();
       _errorMessage = null;
       return true;
-    }
-    catch (e) {
+    } catch (e) {
       _errorMessage = e.toString();
       debugPrint('Lỗi SignOut trong AuthProvider: $e');
       return false;
@@ -216,7 +225,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> resetPassword(String email, String newPassword, String otp) async {
+  Future<bool> resetPassword(
+    String email,
+    String newPassword,
+    String otp,
+  ) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();

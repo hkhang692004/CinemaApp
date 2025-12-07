@@ -67,7 +67,7 @@ export const authService = {
     const { email, password } = data;
     if (!email || !password) throw new Error("Thiếu email hoặc mật khẩu");
 
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ where: { email ,role_id: 1 } });
     if (!user) throw new Error("Email hoặc mật khẩu sai");
 
     const match = await bcrypt.compare(password, user.password_hash);
