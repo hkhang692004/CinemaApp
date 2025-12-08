@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:cinema_app/models/movie.dart';
 import 'package:cinema_app/providers/auth_provider.dart';
 import 'package:cinema_app/providers/movie_provider.dart';
@@ -21,15 +24,32 @@ class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int _currentBannerIndex = 0;
+  Timer? _bannerTimer;
+  PageController? _bannerPageController;
+  int _bannerInitialPage = 0; // Dùng cho hiệu ứng loop mượt mà
+  final ScrollController _scrollController = ScrollController();
+  double _scrollOffset = 0.0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_handleTabChange);
+    _scrollController.addListener(() {
+      if (mounted) {
+        setState(() {
+          _scrollOffset = _scrollController.offset;
+        });
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<NewsProvider>().loadBannerNews();
     });
+
+
+    _bannerInitialPage = 1000; // số lớn để tránh nhảy về đầu
+    _bannerPageController = PageController(initialPage: _bannerInitialPage);
+
 
     // Load movies khi mở màn hình
     Future.microtask(() {
@@ -41,6 +61,39 @@ class _HomeScreenState extends State<HomeScreen>
         movieProvider.loadComingSoonMovies();
       }
     });
+  }
+
+  void _startBannerAutoPlay(){
+    if (!mounted) return; // ✅ Kiểm tra mounted
+
+    final newsProvider = context.read<NewsProvider>();
+    if(newsProvider.bannerNews.length <= 1) return;
+
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer.periodic(const Duration(seconds: 4), (timer){
+      if (!mounted) { // ✅ Kiểm tra mounted trong timer
+        timer.cancel();
+        return;
+      }
+
+      if (_bannerPageController != null && _bannerPageController!.hasClients) {
+        // Lấy current page thực tế (có thể là số lớn)
+        final currentPage = _bannerPageController!.page?.round() ?? _bannerInitialPage;
+        _bannerPageController!.animateToPage(
+          currentPage + 1, // Tăng 1 trang, PageView.builder sẽ loop nhờ modulo
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  void _pauseBannerAutoPlay() {
+    _bannerTimer?.cancel();
+  }
+
+  void _resumeBannerAutoPlay() {
+    _startBannerAutoPlay();
   }
 
   void _handleTabChange() {
@@ -64,6 +117,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
+    _bannerTimer?.cancel();
+    _bannerPageController?.dispose();
+    _scrollController.dispose();
     _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     super.dispose();
@@ -73,241 +129,352 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final movieProvider = context.watch<MovieProvider>();
+    final newsProvider = context.watch<NewsProvider>();
+    final bannerNews = newsProvider.bannerNews;
+
+    // Lấy ảnh banner hiện tại (hoặc ảnh đầu tiên)
+    final currentBannerImage = bannerNews.isNotEmpty && _currentBannerIndex < bannerNews.length
+        ? bannerNews[_currentBannerIndex].imageUrl
+        : (bannerNews.isNotEmpty ? bannerNews[0].imageUrl : null);
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            _buildAppBar(authProvider),
+      body: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          // Backdrop SliverAppBar với Banner nằm lên trên background
+          SliverAppBar(
+            expandedHeight: 320,
+            pinned: true,
+            elevation: 0,
+            backgroundColor: Colors.white,
 
-            SliverToBoxAdapter(child: _buildBanner()),
-
-            SliverToBoxAdapter(child: _buildTabBar()),
-
-            movieProvider.isLoading
-                ? SliverFillRemaining(
-                    child: const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFFE53935),
-                      ),
-                    ),
-                  )
-                : _buildMoviesGrid(movieProvider),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _bottomNavigationBar(),
-    );
-  }
-
-  Widget _buildAppBar(AuthProvider authProvider) {
-    return SliverAppBar(
-      floating: true,
-      backgroundColor: Colors.white,
-      elevation: 1,
-      title: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE53935),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.movie, size: 20, color: Colors.white),
-          ),
-          const SizedBox(width: 12),
-          const Text(
-            'Absolute Cinema',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.search, color: Colors.black87),
-          onPressed: () {
-            // TODO: Search screen
-          },
-        ),
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.person, color: Colors.black87),
-          color: Colors.white,
-          onSelected: (value) {
-            if (value == 'logout') {
-              _handleLogout(authProvider);
-            }
-          },
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: 'profile',
-              child: Row(
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
                 children: [
-                  const Icon(Icons.person, color: Colors.black87, size: 20),
-                  const SizedBox(width: 12),
-                  Text(
-                    authProvider.user?.email ?? 'Profile',
-                    style: const TextStyle(color: Colors.black87),
+                  // Backdrop ảnh banner
+                  if (currentBannerImage != null && currentBannerImage.isNotEmpty)
+                    CachedNetworkImage(
+                      imageUrl: currentBannerImage,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(color: Colors.grey[800]),
+                      errorWidget: (_, __, ___) => Container(color: Colors.grey[800]),
+                    )
+                  else
+                    Container(color: Colors.grey[800]),
+                  // Blur effect
+                  BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                    child: Container(color: Colors.transparent),
+                  ),
+
+                  Container(color: Colors.black.withValues(alpha: 0.1)),
+                  // Banner PageView nằm giữa background
+                  Positioned(
+                    top: MediaQuery.of(context).padding.top + 60,
+                    left: 0,
+                    right: 0,
+                    height: 200,
+                    child: _buildBannerPageView(),
+                  ),
+                  // Indicator dots dưới banner
+                  Positioned(
+                    top: MediaQuery.of(context).padding.top + 270,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: _buildBannerIndicator(),
+                    ),
                   ),
                 ],
               ),
             ),
-            const PopupMenuItem(
-              value: 'settings',
-              child: Row(
-                children: [
-                  Icon(Icons.settings, color: Colors.black87, size: 20),
-                  SizedBox(width: 12),
-                  Text('Cài đặt', style: TextStyle(color: Colors.black87)),
-                ],
+            leading: Container(),
+            title: SafeArea(
+              bottom: false,
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE53935),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.movie, size: 20, color: Colors.white),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Absolute Cinema',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: _scrollOffset > 100 ? Colors.black : Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const PopupMenuDivider(),
-            const PopupMenuItem(
-              value: 'logout',
-              child: Row(
-                children: [
-                  Icon(Icons.logout, color: Color(0xFFE53935), size: 20),
-                  SizedBox(width: 12),
-                  Text('Đăng xuất', style: TextStyle(color: Color(0xFFE53935))),
+            actions: [
+              PopupMenuButton<String>(
+                icon: Icon(Icons.person, color: _scrollOffset > 100 ? Colors.black : Colors.white),
+                color: Colors.white,
+                onSelected: (value) {
+                  if (value == 'logout') {
+                    _handleLogout(authProvider);
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'profile',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person, color: Colors.black87, size: 20),
+                        const SizedBox(width: 12),
+                        Text(
+                          authProvider.user?.email ?? 'Profile',
+                          style: const TextStyle(color: Colors.black87),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'settings',
+                    child: Row(
+                      children: [
+                        Icon(Icons.settings, color: Colors.black87, size: 20),
+                        SizedBox(width: 12),
+                        Text('Cài đặt', style: TextStyle(color: Colors.black87)),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  const PopupMenuItem(
+                    value: 'logout',
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout, color: Color(0xFFE53935), size: 20),
+                        SizedBox(width: 12),
+                        Text('Đăng xuất', style: TextStyle(color: Color(0xFFE53935))),
+                      ],
+                    ),
+                  ),
                 ],
               ),
+            ],
+          ),
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _SliverTabBarDelegate(
+              child: _buildTabBar(),
             ),
-          ],
-        ),
-      ],
+          ),
+          movieProvider.isLoading
+              ? SliverFillRemaining(
+            child: const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFFE53935),
+              ),
+            ),
+          )
+              : _buildMoviesGrid(movieProvider),
+        ],
+      ),
+
+      bottomNavigationBar: _bottomNavigationBar(),
     );
   }
 
-  Widget _buildBanner() {
+  Widget _buildBannerPageView() {
     final newsProvider = context.watch<NewsProvider>();
     final bannerNews = newsProvider.bannerNews;
 
+    _bannerPageController ??= PageController();
+
+
     if (newsProvider.isLoading && bannerNews.isEmpty) {
-      return const SizedBox(
-        height: 200,
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (bannerNews.isEmpty) {
       return const SizedBox.shrink(); // Ẩn nếu không có banner
     }
 
-    return Column(
-      children: [
-        SizedBox(
-          height: 200,
-          child: PageView.builder(
-            itemCount: bannerNews.length,
-            onPageChanged: (index) {
-              setState(() {
-                _currentBannerIndex = index;
-              });
+    // ✅ Chỉ start auto-play nếu timer chưa chạy hoặc đã bị cancel
+    if(bannerNews.isNotEmpty && (_bannerTimer == null || !_bannerTimer!.isActive)){
+      WidgetsBinding.instance.addPostFrameCallback((_){
+        if (mounted) {
+          _startBannerAutoPlay();
+        }
+      });
+    }
+
+    // Nếu chưa có controller (trường hợp hot-reload), khởi tạo với initialPage
+    _bannerPageController ??= PageController(initialPage: _bannerInitialPage);
+
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        if (notification is ScrollStartNotification) {
+          _pauseBannerAutoPlay(); // ✅ Pause khi user bắt đầu swipe
+        } else if (notification is ScrollEndNotification) {
+          _resumeBannerAutoPlay(); // ✅ Resume sau khi swipe xong
+        }
+        return false;
+      },
+      child: PageView.builder(
+        controller: _bannerPageController,
+        onPageChanged: (index) {
+          // index có thể rất lớn; dùng mod để tính indicator
+          final effectiveIndex = index % bannerNews.length;
+          setState(() {
+            _currentBannerIndex = effectiveIndex;
+          });
+          // ✅ Không cần resume ở đây nữa vì đã có trong ScrollEndNotification
+        },
+        itemBuilder: (context, index) {
+          // Sử dụng modulo để loop vô hạn
+          final effectiveIndex = index % bannerNews.length;
+          final news = bannerNews[effectiveIndex];
+          return GestureDetector(
+            onTap: () {
+              // ✅ Xử lý click: nếu có linkedMovie → MovieDetail, không có → NewsDetail
+              if (news.linkedMovie != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        MovieDetailScreen(movie: news.linkedMovie!),
+                  ),
+                );
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => NewsDetailScreen(news: news),
+                  ),
+                );
+              }
             },
-            itemBuilder: (context, index) {
-              final news = bannerNews[index];
-              return GestureDetector(
-                onTap: () {
-                  // ✅ Xử lý click: nếu có linkedMovie → MovieDetail, không có → NewsDetail
-                  if (news.linkedMovie != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            MovieDetailScreen(movie: news.linkedMovie!),
-                      ),
-                    );
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => NewsDetailScreen(news: news),
-                      ),
-                    );
-                  }
-                },
-                child: Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+            child: Container(
+              margin: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Colors.grey[900], // ✅ Background color để che phần crop
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
                   ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: news.imageUrl != null && news.imageUrl!.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: news.imageUrl!,
-                            width: double.infinity,
-                            height: double.infinity,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              color: Colors.grey[800],
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Color(0xFFE53935),
-                                ),
-                              ),
-                            ),
-                            errorWidget: (context, url, error) => Container(
-                              color: Colors.grey[800],
-                              child: const Center(
-                                child: Icon(
-                                  Icons.image_not_supported,
-                                  color: Colors.grey,
-                                  size: 50,
-                                ),
-                              ),
-                            ),
-                          )
-                        : Container(
-                            color: Colors.grey[800],
-                            child: const Center(
-                              child: Icon(
-                                Icons.image_not_supported,
-                                color: Colors.grey,
-                                size: 50,
-                              ),
-                            ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: news.imageUrl != null && news.imageUrl!.isNotEmpty
+                    ? Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // ✅ Ảnh banner với cover để fill container
+                    CachedNetworkImage(
+                      imageUrl: news.imageUrl!,
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover, // ✅ Fill container, crop phần thừa
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey[800],
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFFE53935),
                           ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey[800],
+                        child: const Center(
+                          child: Icon(
+                            Icons.image_not_supported,
+                            color: Colors.grey,
+                            size: 50,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        height: 80,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.4),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+                    : Container(
+                  color: Colors.grey[800],
+                  child: const Center(
+                    child: Icon(
+                      Icons.image_not_supported,
+                      color: Colors.grey,
+                      size: 50,
+                    ),
                   ),
                 ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            bannerNews.length,
-            (index) => Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              width: _currentBannerIndex == index ? 24 : 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: _currentBannerIndex == index
-                    ? const Color(0xFFE53935)
-                    : Colors.grey,
-                borderRadius: BorderRadius.circular(4),
               ),
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBannerIndicator() {
+    final newsProvider = context.watch<NewsProvider>();
+    final bannerNews = newsProvider.bannerNews;
+
+    if (bannerNews.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(
+        bannerNews.length,
+            (index) => Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: _currentBannerIndex == index ? 24 : 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: _currentBannerIndex == index
+                ? const Color(0xFFE53935)
+                : Colors.white.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(4),
           ),
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildTabBar() {
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       decoration: BoxDecoration(
         color: const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(12),
@@ -353,7 +520,7 @@ class _HomeScreenState extends State<HomeScreen>
         },
         child: Padding(
           key: ValueKey(_tabController.index),
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: _buildMoviesContent(movieProvider),
         ),
       ),
@@ -450,7 +617,7 @@ class _HomeScreenState extends State<HomeScreen>
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha: 0.1),
               spreadRadius: 1,
               blurRadius: 4,
               offset: const Offset(0, 2),
@@ -470,36 +637,36 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     child: movie.posterUrl != null
                         ? CachedNetworkImage(
-                            imageUrl: movie.posterUrl!,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            placeholder: (context, url) => Container(
-                              color: Colors.grey[200],
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Color(0xFFE53935),
-                                ),
-                              ),
-                            ),
-                            errorWidget: (context, url, error) => Container(
-                              color: Colors.grey[300],
-                              child: const Icon(
-                                Icons.image_not_supported,
-                                color: Colors.grey,
-                                size: 50,
-                              ),
-                            ),
-                          )
-                        : Container(
-                            color: Colors.grey[300],
-                            child: const Icon(
-                              Icons.image_not_supported,
-                              color: Colors.grey,
-                              size: 50,
-                            ),
+                      imageUrl: movie.posterUrl!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey[200],
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFFE53935),
                           ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey[300],
+                        child: const Icon(
+                          Icons.image_not_supported,
+                          color: Colors.grey,
+                          size: 50,
+                        ),
+                      ),
+                    )
+                        : Container(
+                      color: Colors.grey[300],
+                      child: const Icon(
+                        Icons.image_not_supported,
+                        color: Colors.grey,
+                        size: 50,
+                      ),
+                    ),
                   ),
                   // Age Rating Badge (góc trên bên phải)
                   Positioned(
@@ -623,3 +790,30 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 }
+
+// Delegate for SliverPersistentHeader to make TabBar sticky
+class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+
+  _SliverTabBarDelegate({required this.child});
+
+  @override
+  double get minExtent => 56; // Height of TabBar
+  @override
+  double get maxExtent => 56;
+
+  @override
+  Widget build(
+      BuildContext context,
+      double shrinkOffset,
+      bool overlapsContent,
+      ) {
+    return SizedBox.expand(child: child);
+  }
+
+  @override
+  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
+    return oldDelegate.child != child;
+  }
+}
+

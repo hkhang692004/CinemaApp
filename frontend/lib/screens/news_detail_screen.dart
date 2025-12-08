@@ -13,9 +13,11 @@ class NewsDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tin tức'),
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
       ),
-      backgroundColor: const Color(0xFF1A1A1A),
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,7 +51,7 @@ class NewsDetailScreen extends StatelessWidget {
                   Text(
                     news.title,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: Colors.black,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
@@ -60,7 +62,7 @@ class NewsDetailScreen extends StatelessWidget {
                   if (news.author != null || news.publishedAt != null)
                     Text(
                       '${news.author ?? ''} • ${news.publishedAt != null ? _formatDate(news.publishedAt!) : ''}',
-                      style: TextStyle(color: Colors.grey[400], fontSize: 14),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                   const SizedBox(height: 16),
 
@@ -69,7 +71,7 @@ class NewsDetailScreen extends StatelessWidget {
                     Text(
                       news.summary!,
                       style: TextStyle(
-                        color: Colors.grey[300],
+                        color: Colors.grey[700],
                         fontSize: 16,
                         fontStyle: FontStyle.italic,
                       ),
@@ -81,7 +83,7 @@ class NewsDetailScreen extends StatelessWidget {
                   Text(
                     news.content,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: Colors.black87,
                       fontSize: 16,
                       height: 1.6,
                     ),

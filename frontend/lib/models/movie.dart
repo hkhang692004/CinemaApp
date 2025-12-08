@@ -8,6 +8,7 @@ class MovieModel {
   final int? durationMin;
   final String? director;
   final List<String> actors;
+  final List<String> genres;
   final String? country;
   final DateTime? releaseDate;
   final double avgRating;
@@ -24,6 +25,7 @@ class MovieModel {
     this.durationMin,
     this.director,
     this.actors = const [],
+    this.genres = const [],
     this.country,
     this.releaseDate,
     required this.avgRating,
@@ -31,8 +33,31 @@ class MovieModel {
     required this.ageRating,
   });
 
+  static List<String> _parseList(dynamic raw) {
+    if (raw == null) return [];
+    if (raw is List) {
+      // Nếu backend trả [{id,name}]
+      if (raw.isNotEmpty && raw.first is Map) {
+        return raw
+            .map((e) => e['name']?.toString() ?? '')
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+      // Nếu backend trả mảng string
+      return raw.map((e) => e.toString()).toList();
+    }
+    if (raw is String) {
+      return raw
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+    return [];
+  }
+
   factory MovieModel.fromJson(Map<String, dynamic> json) {
-    final actorsString = json['actors'] as String?;
+    final rawGenres = json['genres'] ?? json['Genres'];
     return MovieModel(
       id: json['id'],
       title: json['title'],
@@ -42,9 +67,8 @@ class MovieModel {
       backdropUrl: json['backdrop_url'],
       durationMin: json['duration_min'],
       director: json['director'],
-      actors: (actorsString == null || actorsString.isEmpty)
-          ? []
-          : actorsString.split(',').map((e) => e.trim()).toList(),
+      actors: _parseList(json['actors']),
+      genres: _parseList(rawGenres),
       country: json['country'],
       releaseDate: json['release_date'] != null
           ? DateTime.parse(json['release_date'])
@@ -67,6 +91,7 @@ class MovieModel {
       'duration_min': durationMin,
       'director': director,
       'actors': actors.join(', '),
+      'genres': genres.join(', '), // xuất ra chuỗi, tùy backend mà dùng
       'country': country,
       'release_date':
           releaseDate != null ? releaseDate!.toIso8601String() : null,

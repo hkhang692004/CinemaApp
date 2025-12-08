@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:cinema_app/models/news.dart';
 import 'package:cinema_app/providers/auth_provider.dart';
 import 'package:cinema_app/services/news_service.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class NewsProvider extends ChangeNotifier {
   NewsService? _newsService;
@@ -47,6 +49,10 @@ class NewsProvider extends ChangeNotifier {
 
       _bannerNews = await newsService.getBannerNews();
       debugPrint('✅ Đã load ${_bannerNews.length} banner news');
+      
+      // Preload ảnh banner vào cache
+      await _preloadBannerImages(_bannerNews);
+      
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -64,12 +70,104 @@ class NewsProvider extends ChangeNotifier {
       notifyListeners();
 
       _selectedNews = await newsService.getNewsDetail(newsId);
+      
+      // Preload ảnh banner của news detail vào cache
+      if (_selectedNews != null && _selectedNews!.imageUrl != null && _selectedNews!.imageUrl!.isNotEmpty) {
+        await _preloadNewsDetailImage(_selectedNews!.imageUrl!);
+      }
+      
       _isLoading = false;
       notifyListeners();
     } catch (e) {
       _isLoading = false;
       _error = e.toString();
       notifyListeners();
+    }
+  }
+
+  /// Preload ảnh banner news vào cache
+  Future<void> _preloadBannerImages(List<NewsModel> newsList) async {
+    if (newsList.isEmpty) return;
+
+    final futures = <Future<void>>[];
+    int loadedCount = 0;
+    final totalImages = newsList.where((n) => n.imageUrl != null && n.imageUrl!.isNotEmpty).length;
+
+    if (totalImages == 0) return;
+
+    for (final news in newsList) {
+      if (news.imageUrl != null && news.imageUrl!.isNotEmpty) {
+        final completer = Completer<void>();
+        
+        CachedNetworkImageProvider(news.imageUrl!)
+            .resolve(const ImageConfiguration())
+            .addListener(
+          ImageStreamListener(
+            (ImageInfo imageInfo, bool synchronousCall) {
+              if (!completer.isCompleted) {
+                loadedCount++;
+                completer.complete();
+                debugPrint('Đã preload banner news ($loadedCount/$totalImages): ${news.title}');
+              }
+            },
+            onError: (exception, stackTrace) {
+              if (!completer.isCompleted) {
+                loadedCount++;
+                completer.complete();
+                debugPrint('Lỗi preload banner news ${news.title}: $exception');
+              }
+            },
+          ),
+        );
+        
+        futures.add(completer.future);
+      }
+    }
+
+    // Chờ tất cả ảnh preload xong hoặc timeout sau 5 giây
+    if (futures.isNotEmpty) {
+      try {
+        await Future.any([
+          Future.wait(futures),
+          Future.delayed(const Duration(seconds: 5)),
+        ]);
+        debugPrint('Preload banner news hoàn thành: $loadedCount/$totalImages ảnh');
+      } catch (e) {
+        debugPrint('Lỗi khi preload banner news: $e');
+      }
+    }
+  }
+
+  /// Preload ảnh banner cho news detail page
+  Future<void> _preloadNewsDetailImage(String imageUrl) async {
+    try {
+      final completer = Completer<void>();
+      
+      CachedNetworkImageProvider(imageUrl)
+          .resolve(const ImageConfiguration())
+          .addListener(
+        ImageStreamListener(
+          (ImageInfo imageInfo, bool synchronousCall) {
+            if (!completer.isCompleted) {
+              completer.complete();
+              debugPrint('Đã preload news detail image');
+            }
+          },
+          onError: (exception, stackTrace) {
+            if (!completer.isCompleted) {
+              completer.complete();
+              debugPrint('Lỗi preload news detail image: $exception');
+            }
+          },
+        ),
+      );
+
+      await Future.any([
+        completer.future,
+        Future.delayed(const Duration(seconds: 3)),
+      ]);
+    } catch (e) {
+      debugPrint('Lỗi khi preload news detail image: $e');
     }
   }
 }

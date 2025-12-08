@@ -26,7 +26,7 @@ async function seedFakeNews() {
 Bộ phim với sự tham gia của Leonardo DiCaprio, Joseph Gordon-Levitt và Ellen Page đã từng gây sốt khi ra mắt vào năm 2010 với cốt truyện độc đáo về công nghệ chia sẻ giấc mơ.
 
 Đây là cơ hội tuyệt vời cho những khán giả chưa từng xem hoặc muốn trải nghiệm lại kiệt tác này trên màn ảnh lớn. Vé đang được bán với giá ưu đãi đặc biệt.`,
-      image_url: "https://image.tmdb.org/t/p/original/xlaY2zyzMfkhk0HSC5VUwzoZPU1.jpg",
+      image_url: "https://image.tmdb.org/t/p/original/ii8QGacT3MXESqBckQlyrATY0lT.jpg",
       published_at: new Date(),
       author: "Cinema News",
       is_active: true,
@@ -42,7 +42,7 @@ Bộ phim với sự tham gia của Leonardo DiCaprio, Joseph Gordon-Levitt và 
 Bộ phim với thời lượng 181 phút đã phá vỡ mọi kỷ lục phòng vé và trở thành bộ phim có doanh thu cao nhất mọi thời đại. Với sự tham gia của toàn bộ dàn sao MCU, đây là trải nghiệm không thể bỏ lỡ.
 
 Đặc biệt, rạp sẽ tổ chức các suất chiếu đặc biệt vào cuối tuần với nhiều ưu đãi hấp dẫn.`,
-      image_url: "https://image.tmdb.org/t/p/original/ulzhLuWrPK07P1YkdWQLZnQh1JL.jpg",
+      image_url: "https://image.tmdb.org/t/p/original/9wXPKruA6bWYk2co5ix6fH59Qr8.jpg",
       published_at: new Date(),
       author: "Cinema News",
       is_active: true,
@@ -58,7 +58,7 @@ Bộ phim với thời lượng 181 phút đã phá vỡ mọi kỷ lục phòng
 Bộ phim kể về sự kiện Shibuya, nơi Satoru Gojo bị phong ấn và cuộc chiến đấu của Yuji Itadori cùng các đồng đội. Đây là một trong những arc quan trọng nhất của series.
 
 Fans của anime không thể bỏ qua cơ hội xem bộ phim này trên màn ảnh lớn với chất lượng âm thanh và hình ảnh tuyệt vời.`,
-      image_url: "https://image.tmdb.org/t/p/original/tc7RrVW5FGvyO2tsgW6LIN1esHI.jpg",
+      image_url: "https://image.tmdb.org/t/p/original/gtKglOSEq3d4MgQE4VsrT1sRkd0.jpg",
       published_at: new Date(),
       author: "Anime News",
       is_active: true,
@@ -74,7 +74,7 @@ Fans của anime không thể bỏ qua cơ hội xem bộ phim này trên màn �
 Lần này, hai nhân vật chính phải đối mặt với một âm mưu lớn khi Gary De'Snake xuất hiện và làm đảo lộn thành phố Zootopia. Để giải quyết vụ án, họ phải điều tra ở những khu vực bất ngờ nhất.
 
 Bộ phim hứa hẹn sẽ mang đến nhiều tiếng cười và những khoảnh khắc cảm động cho khán giả mọi lứa tuổi.`,
-      image_url: "https://image.tmdb.org/t/p/original/3Wg1LBCiTEXTxRrkNKOqJyyIFyF.jpg",
+      image_url: "https://image.tmdb.org/t/p/original/5h2EsPKNDdB3MAtOk9MB9Ycg9Rz.jpg",
       published_at: new Date(),
       author: "Animation News",
       is_active: true,
@@ -95,7 +95,7 @@ Chương trình áp dụng cho:
 Thời gian áp dụng: Từ ngày 1/1/2025 đến hết ngày 31/1/2025.
 
 Đừng bỏ lỡ cơ hội xem phim với giá ưu đãi này!`,
-      image_url: "https://image.tmdb.org/t/p/original/g96wHxU7EnoIFwemb2RgohIXrgW.jpg",
+      image_url: "https://res.cloudinary.com/dblzpkokm/image/upload/v1765175198/CGV_DealJOY_1600x400_1_gu0ljn.jpg",
       published_at: new Date(),
       author: "Marketing Team",
       is_active: true,

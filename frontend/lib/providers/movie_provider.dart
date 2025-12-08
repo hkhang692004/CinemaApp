@@ -105,6 +105,11 @@ class MovieProvider extends ChangeNotifier {
     try {
       _selectedMovie = await movieService.getDetailMovie(movieId);
       _errorMessage = null;
+      
+      // Preload backdrop và poster vào cache ngay khi fetch detail
+      if (_selectedMovie != null) {
+        await _preloadDetailImages(_selectedMovie!);
+      }
     } catch (e) {
       debugPrint('Lỗi getDetailMovie: $e');
       _errorMessage = e.toString();
@@ -182,6 +187,72 @@ class MovieProvider extends ChangeNotifier {
       debugPrint('Preload hoàn thành: $loadedCount/$totalImages ảnh');
     } catch (e) {
       debugPrint('Lỗi khi preload ảnh: $e');
+    }
+  }
+
+  /// Preload backdrop và poster cho detail page
+  Future<void> _preloadDetailImages(MovieModel movie) async {
+    final futures = <Future<void>>[];
+
+    // Preload backdrop
+    if (movie.backdropUrl != null && movie.backdropUrl!.isNotEmpty) {
+      final completer = Completer<void>();
+      CachedNetworkImageProvider(movie.backdropUrl!)
+          .resolve(const ImageConfiguration())
+          .addListener(
+        ImageStreamListener(
+          (ImageInfo imageInfo, bool synchronousCall) {
+            if (!completer.isCompleted) {
+              completer.complete();
+              debugPrint('Đã preload backdrop: ${movie.title}');
+            }
+          },
+          onError: (exception, stackTrace) {
+            if (!completer.isCompleted) {
+              completer.complete();
+              debugPrint('Lỗi preload backdrop: $exception');
+            }
+          },
+        ),
+      );
+      futures.add(completer.future);
+    }
+
+    // Preload poster
+    if (movie.posterUrl != null && movie.posterUrl!.isNotEmpty) {
+      final completer = Completer<void>();
+      CachedNetworkImageProvider(movie.posterUrl!)
+          .resolve(const ImageConfiguration())
+          .addListener(
+        ImageStreamListener(
+          (ImageInfo imageInfo, bool synchronousCall) {
+            if (!completer.isCompleted) {
+              completer.complete();
+              debugPrint('Đã preload poster: ${movie.title}');
+            }
+          },
+          onError: (exception, stackTrace) {
+            if (!completer.isCompleted) {
+              completer.complete();
+              debugPrint('Lỗi preload poster: $exception');
+            }
+          },
+        ),
+      );
+      futures.add(completer.future);
+    }
+
+    // Chờ tất cả preload xong hoặc timeout sau 3 giây
+    if (futures.isNotEmpty) {
+      try {
+        await Future.any([
+          Future.wait(futures),
+          Future.delayed(const Duration(seconds: 3)),
+        ]);
+        debugPrint('Preload detail images hoàn thành');
+      } catch (e) {
+        debugPrint('Lỗi khi preload detail images: $e');
+      }
     }
   }
 }

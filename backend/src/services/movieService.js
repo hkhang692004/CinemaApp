@@ -1,3 +1,4 @@
+import Genre from "../models/Genre.js";
 import { Movie } from "../models/Movie.js";
 import { Op } from "sequelize";
 
@@ -18,8 +19,16 @@ export const movieService = {
       order: [["release_date", "DESC"]],
     });
   },
-  async getDetailMovie(data) {
-    return Movie.findByPk(data);
+  async getDetailMovie(id) {
+    return Movie.findByPk(id, {
+      include: [
+        {
+          model: Genre,
+          through: { attributes: [] },
+          attributes: ["id", "name"],
+        },
+      ],
+    });
   },
   async searchMovie(data) {
     return Movie.findAll({

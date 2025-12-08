@@ -6,7 +6,6 @@ import sequelize from "./libs/db.js";
 async function seedFakeMovies() {
   await sequelize.sync(); // Đảm bảo kết nối DB
 
-
   await MovieGenre.destroy({ where: {} }); // Xóa movie_genres trước
   await Movie.destroy({ where: {} }); // Sau đó mới xóa movies
   console.log("Đã xóa dữ liệu cũ!");
@@ -85,7 +84,8 @@ async function seedFakeMovies() {
       avg_rating: 7.8,
     },
     {
-      title: "JUJUTSU KAISEN: Execution -Shibuya Incident x The Culling Game Begins- (2025)",
+      title:
+        "JUJUTSU KAISEN: Execution -Shibuya Incident x The Culling Game Begins- (2025)",
       description:
         "A veil abruptly descends over the busy Shibuya area amid the bustling Halloween crowds, trapping countless civilians inside. Satoru Gojo, the strongest jujutsu sorcerer, steps into the chaos. But lying in wait are curse users and spirits scheming to seal him away. Yuji Itadori, accompanied by his classmates and other top-tier jujutsu sorcerers, enters the fray in an unprecedented clash of curses — the Shibuya Incident. In the aftermath, ten colonies across Japan are transformed into dens of curses in a plan orchestrated by Noritoshi Kamo. As the deadly Culling Game starts, Special Grade sorcerer Yuta Okkotsu is assigned to carry out Yuji's execution for his perceived crimes. A compilation movie of Shibuya Incident including the first two episodes of the Culling Games arc.",
       trailer_url: "https://www.youtube.com/watch?v=C7P9ueuQ6FU",
@@ -246,7 +246,6 @@ async function seedFakeMovies() {
       status: "coming_soon",
       avg_rating: 7.8,
     },
-
   ];
 
   for (const movie of movies) {
