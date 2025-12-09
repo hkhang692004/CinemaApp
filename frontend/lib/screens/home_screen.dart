@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:ui';
-
 import 'package:cinema_app/models/movie.dart';
 import 'package:cinema_app/providers/auth_provider.dart';
 import 'package:cinema_app/providers/movie_provider.dart';
@@ -9,6 +8,7 @@ import 'package:cinema_app/providers/news_provider.dart';
 import 'package:cinema_app/screens/news_detail_screen.dart';
 import 'package:cinema_app/screens/movie_detail_screen.dart';
 import 'package:cinema_app/screens/all_movies_screen.dart';
+import 'package:cinema_app/screens/all_news_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -29,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen>
   int _bannerInitialPage = 0; // Dùng cho hiệu ứng loop mượt mà
   final ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0.0;
+  int _currentBottomNavIndex = 0; // Track bottom nav selection
 
   @override
   void initState() {
@@ -130,9 +131,18 @@ class _HomeScreenState extends State<HomeScreen>
     final authProvider = context.watch<AuthProvider>();
     final movieProvider = context.watch<MovieProvider>();
     final newsProvider = context.watch<NewsProvider>();
-    final bannerNews = newsProvider.bannerNews;
 
-    // Lấy ảnh banner hiện tại (hoặc ảnh đầu tiên)
+    // Kiểm tra nếu đang ở tab tin tức (index 1)
+    if (_currentBottomNavIndex == 1) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: const AllNewsScreen(),
+        bottomNavigationBar: _bottomNavigationBar(),
+      );
+    }
+
+    // Trang chủ (mặc định)
+    final bannerNews = newsProvider.bannerNews;
     final currentBannerImage = bannerNews.isNotEmpty && _currentBannerIndex < bannerNews.length
         ? bannerNews[_currentBannerIndex].imageUrl
         : (bannerNews.isNotEmpty ? bannerNews[0].imageUrl : null);
@@ -766,15 +776,22 @@ class _HomeScreenState extends State<HomeScreen>
       unselectedItemColor: Colors.grey,
       elevation: 8,
       type: BottomNavigationBarType.fixed,
-      currentIndex: 0,
+      currentIndex: _currentBottomNavIndex,
+      onTap: (index) {
+        if (index != _currentBottomNavIndex) {
+          setState(() {
+            _currentBottomNavIndex = index;
+          });
+        }
+      },
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Trang chủ'),
-        BottomNavigationBarItem(icon: Icon(Icons.movie), label: 'Phim'),
+        BottomNavigationBarItem(icon: Icon(Icons.newspaper), label: 'Tin tức'),
         BottomNavigationBarItem(
           icon: Icon(Icons.confirmation_number),
           label: 'Vé',
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.receipt), label: 'Hóa đơn'),
+        BottomNavigationBarItem(icon: Icon(Icons.receipt), label: 'Rạp chiếu'),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Tài khoản'),
       ],
     );

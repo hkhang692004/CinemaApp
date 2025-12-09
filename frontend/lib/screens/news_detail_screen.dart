@@ -109,8 +109,9 @@ class NewsDetailScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
                         child: const Text(
-                          'Xem phim',
+                          'Xem thông tin phim',
                           style: TextStyle(
+                            color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),

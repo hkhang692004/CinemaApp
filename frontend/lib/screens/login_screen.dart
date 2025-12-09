@@ -52,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  
+
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     'Đăng nhập',
                     style: TextStyle(fontSize: 26,
                         color: Color(0xFF1F1F1F),
-                    fontWeight: FontWeight.bold),
+                        fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
@@ -268,21 +268,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       child: authProvider.isLoading
                           ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                           : const Text(
-                              'Đăng nhập',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
+                        'Đăng nhập',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
 

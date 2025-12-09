@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cinema_app/models/movie.dart';
 import 'package:cinema_app/providers/movie_provider.dart';

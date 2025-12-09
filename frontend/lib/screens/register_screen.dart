@@ -127,7 +127,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           color: Colors.black,
                         ),
                       ),
-                    const SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
                         'Chào mừng bạn đến với Absolute Cinema',
                         style: TextStyle(
@@ -148,7 +148,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _fullNameController,
                   hintText: 'Nhập họ và tên',
                   validator: (value) =>
-                      value?.isEmpty ?? true ? 'Vui lòng nhập họ tên' : null,
+                  value?.isEmpty ?? true ? 'Vui lòng nhập họ tên' : null,
                 ),
 
                 const SizedBox(height: 20),
@@ -208,7 +208,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   validator: (value) =>
-                      value?.isEmpty ?? true ? 'Vui lòng chọn ngày sinh' : null,
+                  value?.isEmpty ?? true ? 'Vui lòng chọn ngày sinh' : null,
                 ),
 
                 const SizedBox(height: 20),
@@ -270,21 +270,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     child: authProvider.isLoading
                         ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
                         : const Text(
-                            'Đăng ký',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
+                      'Đăng ký',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
 

@@ -11,6 +11,7 @@ class NewsProvider extends ChangeNotifier {
 
   List<NewsModel> _bannerNews = [];
   NewsModel? _selectedNews;
+  List<NewsModel> _paginatedNews = []; // For all news screen
   bool _isLoading = false;
   String? _error;
 
@@ -38,6 +39,7 @@ class NewsProvider extends ChangeNotifier {
 
   List<NewsModel> get bannerNews => _bannerNews;
   NewsModel? get selectedNews => _selectedNews;
+  List<NewsModel> get paginatedNews => _paginatedNews;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -168,6 +170,51 @@ class NewsProvider extends ChangeNotifier {
       ]);
     } catch (e) {
       debugPrint('Lỗi khi preload news detail image: $e');
+    }
+  }
+
+  /// Load paginated news (first page) - backend pagination
+  Future<void> loadPaginatedNews({int page = 1, int pageSize = 6, String? search}) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      _paginatedNews = []; // Reset dữ liệu cũ ngay lập tức
+      notifyListeners();
+
+      final result = await newsService.getPaginatedNews(page: page, pageSize: pageSize, search: search);
+      _paginatedNews = result['news'] ?? [];
+      
+      debugPrint('✅ Đã load trang $page: ${_paginatedNews.length} tin tức');
+
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      debugPrint('❌ Lỗi load paginated news: $e');
+      notifyListeners();
+    }
+  }
+
+  /// Load more paginated news (append next page) - backend pagination
+  Future<void> loadMorePaginatedNews({int page = 2, int pageSize = 6, String? search}) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final result = await newsService.getPaginatedNews(page: page, pageSize: pageSize, search: search);
+      final moreNews = result['news'] ?? [];
+      
+      _paginatedNews.addAll(moreNews);
+      debugPrint('✅ Append trang $page: thêm ${moreNews.length} tin tức, tổng ${_paginatedNews.length}');
+      
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      debugPrint('❌ Lỗi load more paginated news: $e');
+      notifyListeners();
     }
   }
 }

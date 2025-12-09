@@ -15,5 +15,6 @@ class ApiConfig {
   //News
   static const String bannerNews = "/news/banners";
   static const String newsDetail = "/news";
+  static const String allNews = "/news/allnews";
   static const Duration timeout = Duration(seconds: 30);
 }
