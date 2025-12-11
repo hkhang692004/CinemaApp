@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cinema_app/models/movie.dart';
 import 'package:cinema_app/providers/movie_provider.dart';
+import 'package:cinema_app/screens/booking_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -223,7 +224,16 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                               ),
                             ),
                             onPressed: () {
-                              // TODO: điều hướng tới flow đặt vé
+                              // Điều hướng tới flow đặt vé
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => BookingScreen(
+                                    movieId: movie.id,
+                                    movieTitle: movie.title,
+                                  ),
+                                ),
+                              );
                             },
                             child: const Text(
                               'Đặt vé',

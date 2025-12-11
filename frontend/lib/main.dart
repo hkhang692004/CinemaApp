@@ -1,5 +1,6 @@
 import 'package:cinema_app/providers/news_provider.dart';
 import 'package:cinema_app/providers/movie_provider.dart';
+import 'package:cinema_app/providers/booking_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'app.dart';
@@ -29,6 +30,17 @@ void main() async {
           update: (_, authProvider, previous) {
             if (previous == null) {
               return NewsProvider(authProvider);
+            } else {
+              previous.updateAuthProvider(authProvider);
+              return previous;
+            }
+          },
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, BookingProvider>(
+          create: (_) => BookingProvider(null),
+          update: (_, authProvider, previous) {
+            if (previous == null) {
+              return BookingProvider(authProvider);
             } else {
               previous.updateAuthProvider(authProvider);
               return previous;

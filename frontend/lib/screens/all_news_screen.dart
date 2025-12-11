@@ -37,8 +37,6 @@ class _AllNewsScreenState extends State<AllNewsScreen> {
   }
 
   void _onScroll() {
-    // Chỉ load trang tiếp khi scroll tới gần cuối (800px từ bottom)
-    // Điều này tạo cảm giác rõ ràng của phân trang
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent ) {
       if (!_isLoadingMore && mounted) {

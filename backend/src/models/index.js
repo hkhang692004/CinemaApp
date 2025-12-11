@@ -66,7 +66,7 @@ Movie.hasMany(Showtime, { foreignKey: 'movie_id' });
 Showtime.belongsTo(Movie, { foreignKey: 'movie_id' });
 
 // CinemaRoom - Showtime
-CinemaRoom.hasMany(Showtime, { foreignKey: 'room_id' });
+CinemaRoom.hasMany(Showtime, { foreignKey: 'room_id', as: 'Showtimes' });
 Showtime.belongsTo(CinemaRoom, { foreignKey: 'room_id' });
 
 // User - Order
