@@ -9,6 +9,8 @@ points: { type: DataTypes.INTEGER, defaultValue: 0 },
 tier: { type: DataTypes.ENUM('Silver','Gold','Platinum'), defaultValue: 'Silver' },
 tier_expires_at: { type: DataTypes.DATEONLY },
 total_spent: { type: DataTypes.DECIMAL(12,2), defaultValue: 0 },
+yearly_spent: { type: DataTypes.DECIMAL(12,2), defaultValue: 0 },
+spent_year: { type: DataTypes.INTEGER, defaultValue: new Date().getFullYear() },
 created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
 updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 }, {

@@ -182,4 +182,66 @@ class BookingService {
       throw Exception('Error loading showtimes: $e');
     }
   }
+
+  /// Lấy danh sách phim đang chiếu tại một rạp
+  Future<List<Map<String, dynamic>>> getMoviesByTheater(int theaterId, {int days = 7}) async {
+    try {
+      final url = Uri.parse(
+        '${ApiConfig.baseURL}/theaters/$theaterId/movies?days=$days'
+      );
+
+      final response = await httpHelper(
+        () => http.get(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${authProvider.accessToken}'
+          },
+        ),
+        authProvider: authProvider,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final movies = (data['movies'] as List).cast<Map<String, dynamic>>();
+        return movies;
+      } else {
+        throw Exception('Failed to load movies: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error loading movies by theater: $e');
+    }
+  }
+
+  /// Lấy showtimes của một phim tại một rạp cụ thể
+  Future<List<CinemaRoomModel>> getShowtimesForMovieAtTheater(int theaterId, int movieId, {int days = 7}) async {
+    try {
+      final url = Uri.parse(
+        '${ApiConfig.baseURL}/theaters/$theaterId/movies/$movieId/showtimes?days=$days'
+      );
+
+      final response = await httpHelper(
+        () => http.get(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${authProvider.accessToken}'
+          },
+        ),
+        authProvider: authProvider,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final rooms = (data['rooms'] as List)
+            .map((room) => CinemaRoomModel.fromJson(room))
+            .toList();
+        return rooms;
+      } else {
+        throw Exception('Failed to load showtimes: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error loading showtimes: $e');
+    }
+  }
 }

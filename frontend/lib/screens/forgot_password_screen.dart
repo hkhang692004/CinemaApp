@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 import '../providers/auth_provider.dart';
+import '../utils/snackbar_helper.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({Key? key}) : super(key: key);
@@ -22,10 +23,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   final formKey = GlobalKey<FormState>();
 
-  void showSnackbar(String msg, [Color? color]) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: color ?? Colors.red),
-    );
+  void showSnackbar(String msg, [bool isSuccess = false]) {
+    if (isSuccess) {
+      SnackBarHelper.showSuccess(context, msg);
+    } else {
+      SnackBarHelper.showError(context, msg);
+    }
   }
 
   @override
@@ -130,7 +133,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               (success ? "OTP đã gửi đến email của bạn!" : "Không gửi được OTP. Kiểm tra lại email.");
                         });
                         if (otpSent) {
-                          showSnackbar("Hãy kiểm tra email để lấy mã OTP!", Colors.green);
+                          showSnackbar("Hãy kiểm tra email để lấy mã OTP!", true);
                         } else if (message != null) {
                           showSnackbar(message!);
                         }
@@ -192,7 +195,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             ? null
                             : () async {
                           await authProvider.sendOTP(emailController.text.trim());
-                          showSnackbar("OTP đã được gửi lại!", Colors.green);
+                          showSnackbar("OTP đã được gửi lại!", true);
                         },
                         child: Text("Gửi lại OTP", style: TextStyle(color: Color(0xFFE53935))),
                       ),
@@ -262,7 +265,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           otp,
                         );
                         if (success) {
-                          showSnackbar("Đặt lại mật khẩu thành công. Hãy đăng nhập lại!", Colors.green);
+                          showSnackbar("Đặt lại mật khẩu thành công. Hãy đăng nhập lại!", true);
                           Navigator.pop(context); // hoặc chuyển về màn login tuỳ luồng app
                         } else {
                           showSnackbar(authProvider.errorMessage ?? "Đặt lại mật khẩu thất bại!");

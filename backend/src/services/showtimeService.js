@@ -23,9 +23,11 @@ export const showtimeService = {
     },
 
     async getReservedSeats(showtimeId){
+        // Chỉ lấy ghế còn reservation (Held hoặc Confirmed)
+        // Released đã bị xóa nên không cần filter
         return SeatReservation.findAll({
                 where:{
-                    showtime_id:showtimeId
+                    showtime_id: showtimeId
                 },
                 attributes:['seat_id']
         });

@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cinema_app/models/movie.dart';
 import 'package:cinema_app/providers/movie_provider.dart';
 import 'package:cinema_app/screens/booking_screen.dart';
+import 'package:cinema_app/utils/snackbar_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -136,17 +137,13 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                         child: GestureDetector(
                           onTap: () {
                             if (_movie.trailerUrl == null || _movie.trailerUrl!.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Không có trailer cho phim này')),
-                              );
+                              SnackBarHelper.showWarning(context, 'Không có trailer cho phim này');
                               return;
                             }
 
                             final videoId = YoutubePlayer.convertUrlToId(_movie.trailerUrl!);
                             if (videoId == null || videoId.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('URL trailer không hợp lệ')),
-                              );
+                              SnackBarHelper.showError(context, 'URL trailer không hợp lệ');
                               return;
                             }
 

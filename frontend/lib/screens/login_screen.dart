@@ -2,6 +2,7 @@ import 'package:cinema_app/screens/forgot_password_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/snackbar_helper.dart';
 import 'home_screen.dart';
 import 'register_screen.dart';
 
@@ -36,12 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Đăng nhập thất bại'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackBarHelper.showError(context, authProvider.errorMessage ?? 'Đăng nhập thất bại');
     }
   }
 

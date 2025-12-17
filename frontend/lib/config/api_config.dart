@@ -23,4 +23,7 @@ class ApiConfig {
 
   //Showtime
   static const String showtimes = "/showtimes";
+
+  //Combos
+  static const String combos = "/combos";
 }

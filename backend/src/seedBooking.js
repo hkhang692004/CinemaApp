@@ -136,29 +136,29 @@ async function seedBookingData() {
     
     const seatsData = [];
     const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-    const seatPerRow = 12;
     
     // Tạo ghế cho mỗi phòng
     rooms.forEach(room => {
-      let seatCount = Math.ceil(room.seat_count / 8); // Số ghế mỗi hàng
-      
       rows.forEach((row, rowIndex) => {
         if (rowIndex >= 8) return; // Chỉ 8 hàng
         
-        for (let i = 1; i <= seatPerRow; i++) {
+        // Tạo ghế với gaps - ví dụ: 1-3, 8-12
+        const seatNumbers = [1, 2, 3, 8, 9, 10, 11, 12];
+        
+        seatNumbers.forEach(seatNum => {
           // Xác định loại ghế
           let seatType = "Standard";
           if (rowIndex >= 6) seatType = "VIP"; // 2 hàng cuối là VIP
-          if (rowIndex === 7 && i % 2 === 0) seatType = "Couple"; // Một vài ghế Couple
+          if (rowIndex === 7 && seatNum % 2 === 0) seatType = "Couple"; // Một vài ghế Couple
           
           seatsData.push({
             room_id: room.id,
             row_label: row,
-            seat_number: String(i),
+            seat_number: String(seatNum),
             seat_type: seatType,
             is_active: true,
           });
-        }
+        });
       });
     });
     

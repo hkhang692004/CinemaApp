@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../utils/snackbar_helper.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -18,6 +19,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _dateOfBirthController = TextEditingController();
+  
+  // Lưu ngày sinh format yyyy-MM-dd để gửi lên server
+  String _dateOfBirthForServer = '';
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -32,12 +36,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
 
     if (pickedDate != null) {
-      String formattedDate =
+      // Format yyyy-MM-dd cho server (MySQL)
+      _dateOfBirthForServer =
           "${pickedDate.year.toString().padLeft(4, '0')}-"
           "${pickedDate.month.toString().padLeft(2, '0')}-"
           "${pickedDate.day.toString().padLeft(2, '0')}";
+      
+      // Hiển thị dd-MM-yyyy cho user
+      String displayDate =
+          "${pickedDate.day.toString().padLeft(2, '0')}-"
+          "${pickedDate.month.toString().padLeft(2, '0')}-"
+          "${pickedDate.year.toString().padLeft(4, '0')}";
 
-      _dateOfBirthController.text = formattedDate;
+      _dateOfBirthController.text = displayDate;
     }
   }
 
@@ -47,12 +58,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Mật khẩu xác nhận không khớp'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackBarHelper.showError(context, 'Mật khẩu xác nhận không khớp');
       return;
     }
 
@@ -63,24 +69,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       password: _passwordController.text,
       fullName: _fullNameController.text.trim(),
       phone: _phoneController.text.trim(),
-      dateOfBirth: _dateOfBirthController.text.trim(),
+      dateOfBirth: _dateOfBirthForServer,
     );
 
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đăng ký thành công! Vui lòng đăng nhập'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      SnackBarHelper.showSuccess(context, 'Đăng ký thành công! Vui lòng đăng nhập');
       Navigator.pop(context);
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Đăng ký thất bại'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      SnackBarHelper.showError(context, authProvider.errorMessage ?? 'Đăng ký thất bại');
     }
   }
 

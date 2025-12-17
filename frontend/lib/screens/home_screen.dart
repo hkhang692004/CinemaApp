@@ -9,12 +9,17 @@ import 'package:cinema_app/screens/news_detail_screen.dart';
 import 'package:cinema_app/screens/movie_detail_screen.dart';
 import 'package:cinema_app/screens/all_movies_screen.dart';
 import 'package:cinema_app/screens/all_news_screen.dart';
+import 'package:cinema_app/screens/my_tickets_screen.dart';
+import 'package:cinema_app/screens/theaters_screen.dart';
+import 'package:cinema_app/screens/account_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final int initialTabIndex;
+  
+  const HomeScreen({super.key, this.initialTabIndex = 0});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -29,11 +34,12 @@ class _HomeScreenState extends State<HomeScreen>
   int _bannerInitialPage = 0; // Dùng cho hiệu ứng loop mượt mà
   final ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0.0;
-  int _currentBottomNavIndex = 0; // Track bottom nav selection
+  late int _currentBottomNavIndex; // Track bottom nav selection
 
   @override
   void initState() {
     super.initState();
+    _currentBottomNavIndex = widget.initialTabIndex;
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_handleTabChange);
     _scrollController.addListener(() {
@@ -141,6 +147,33 @@ class _HomeScreenState extends State<HomeScreen>
       );
     }
 
+    // Kiểm tra nếu đang ở tab vé (index 2)
+    if (_currentBottomNavIndex == 2) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: const MyTicketsScreen(),
+        bottomNavigationBar: _bottomNavigationBar(),
+      );
+    }
+
+    // Kiểm tra nếu đang ở tab rạp chiếu (index 3)
+    if (_currentBottomNavIndex == 3) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: const TheatersScreen(),
+        bottomNavigationBar: _bottomNavigationBar(),
+      );
+    }
+
+    // Kiểm tra nếu đang ở tab tài khoản (index 4)
+    if (_currentBottomNavIndex == 4) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: const AccountScreen(),
+        bottomNavigationBar: _bottomNavigationBar(),
+      );
+    }
+
     // Trang chủ (mặc định)
     final bannerNews = newsProvider.bannerNews;
     final currentBannerImage = bannerNews.isNotEmpty && _currentBannerIndex < bannerNews.length
@@ -228,53 +261,6 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
             ),
-            actions: [
-              PopupMenuButton<String>(
-                icon: Icon(Icons.person, color: _scrollOffset > 100 ? Colors.black : Colors.white),
-                color: Colors.white,
-                onSelected: (value) {
-                  if (value == 'logout') {
-                    _handleLogout(authProvider);
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'profile',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.person, color: Colors.black87, size: 20),
-                        const SizedBox(width: 12),
-                        Text(
-                          authProvider.user?.email ?? 'Profile',
-                          style: const TextStyle(color: Colors.black87),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'settings',
-                    child: Row(
-                      children: [
-                        Icon(Icons.settings, color: Colors.black87, size: 20),
-                        SizedBox(width: 12),
-                        Text('Cài đặt', style: TextStyle(color: Colors.black87)),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  const PopupMenuItem(
-                    value: 'logout',
-                    child: Row(
-                      children: [
-                        Icon(Icons.logout, color: Color(0xFFE53935), size: 20),
-                        SizedBox(width: 12),
-                        Text('Đăng xuất', style: TextStyle(color: Color(0xFFE53935))),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ),
           SliverPersistentHeader(
             pinned: true,
@@ -791,20 +777,10 @@ class _HomeScreenState extends State<HomeScreen>
           icon: Icon(Icons.confirmation_number),
           label: 'Vé',
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.receipt), label: 'Rạp chiếu'),
+        BottomNavigationBarItem(icon: Icon(Icons.movie_outlined), label: 'Rạp chiếu'),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Tài khoản'),
       ],
     );
-  }
-
-  void _handleLogout(AuthProvider authProvider) async {
-    await authProvider.signOut();
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
-      );
-    }
   }
 }
 

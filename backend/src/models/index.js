@@ -29,6 +29,7 @@ import NewsArticle from './NewsArticle.js';
 import DailyStatistic from './DailyStatistic.js';
 import Session from './Session.js';
 import TokenBlacklist from './TokenBlacklist.js';
+import SeatTypePrice from './SeatTypePrice.js';
 
 // --- Associations ---
 
@@ -138,4 +139,5 @@ export {
     DailyStatistic,
     Session,
     TokenBlacklist,
+    SeatTypePrice,
 };

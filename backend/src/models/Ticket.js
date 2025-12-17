@@ -14,7 +14,7 @@ Ticket.init(
     seat_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
     status: {
-      type: DataTypes.ENUM("Booked", "CheckedIn", "Cancelled", "Refunded"),
+      type: DataTypes.ENUM("Booked", "Paid", "CheckedIn", "Cancelled", "Refunded"),
       defaultValue: "Booked",
     },
     qr_code: { type: DataTypes.STRING(500) },

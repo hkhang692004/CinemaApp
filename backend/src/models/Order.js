@@ -7,6 +7,7 @@ Order.init({
     id: { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     user_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     order_code: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+    promotion_code: { type: DataTypes.STRING(50), allowNull: true },
     total_amount: { type: DataTypes.DECIMAL(12, 2), allowNull: false },
     discount_amount: { type: DataTypes.DECIMAL(12, 2), defaultValue: 0 },
     loyalty_points_used: { type: DataTypes.INTEGER, defaultValue: 0 },

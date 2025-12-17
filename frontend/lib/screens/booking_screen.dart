@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../providers/booking_provider.dart';
 import '../models/cinema_room_model.dart';
+import 'seat_selection_screen.dart';
 
 class BookingScreen extends StatefulWidget {
   final int movieId;
@@ -715,16 +716,37 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  void _selectShowtime(dynamic showtime) {
-    // TODO: Điều hướng đến màn hình chọn ghế
-    final startStr = showtime.startTime is DateTime
-        ? DateFormat('yyyy-MM-dd HH:mm').format(showtime.startTime)
-        : showtime.startTime.toString();
+  void _selectShowtime(ShowtimeModel showtime) {
+    // Get theater and room info from provider
+    final provider = Provider.of<BookingProvider>(context, listen: false);
+    final theaters = provider.theatersWithFilteredShowtimes;
+    
+    String theaterName = '';
+    String roomName = '';
+    
+    // Find theater and room containing this showtime
+    for (final theater in theaters) {
+      for (final room in theater.cinemaRooms ?? []) {
+        final hasShowtime = room.showtimes?.any((s) => s.id == showtime.id) ?? false;
+        if (hasShowtime) {
+          theaterName = theater.name;
+          roomName = room.name;
+          break;
+        }
+      }
+      if (theaterName.isNotEmpty) break;
+    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Chọn suất chiếu lúc $startStr'),
-        duration: const Duration(seconds: 2),
+    // Navigate to seat selection
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SeatSelectionScreen(
+          showtime: showtime,
+          movieTitle: widget.movieTitle,
+          theaterName: theaterName,
+          roomName: roomName,
+        ),
       ),
     );
   }

@@ -9,6 +9,7 @@ class TheaterModel {
   final String phone;
   final String email;
   final bool isActive;
+  final String? imageUrl;
   final List<CinemaRoomModel>? cinemaRooms;
 
   TheaterModel({
@@ -19,6 +20,7 @@ class TheaterModel {
     required this.phone,
     required this.email,
     required this.isActive,
+    this.imageUrl,
     this.cinemaRooms,
   });
 
@@ -37,6 +39,7 @@ class TheaterModel {
       phone: json['phone'],
       email: json['email'],
       isActive: json['is_active'] ?? true,
+      imageUrl: json['image_url'],
       cinemaRooms: cinemaRooms.isNotEmpty ? cinemaRooms : null,
     );
   }
@@ -50,6 +53,7 @@ class TheaterModel {
       'phone': phone,
       'email': email,
       'is_active': isActive,
+      'image_url': imageUrl,
     };
   }
 }

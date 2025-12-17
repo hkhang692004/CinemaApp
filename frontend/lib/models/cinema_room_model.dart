@@ -22,10 +22,10 @@ class CinemaRoomModel {
     final rawShowtimes = json['Showtimes'] ?? json['showtimes'];
 
     return CinemaRoomModel(
-      id: json['id'],
-      theaterId: json['theater_id'],
-      name: json['name'],
-      seatCount: json['seat_count'],
+      id: json['id'] ?? 0,
+      theaterId: json['theater_id'] ?? 0,
+      name: json['name'] ?? '',
+      seatCount: json['seat_count'] ?? 0,
       screenType: json['screen_type'] ?? 'Standard',
       isActive: json['is_active'] ?? true,
       showtimes: (rawShowtimes as List?)
@@ -82,9 +82,9 @@ class ShowtimeModel {
     }
 
     return ShowtimeModel(
-      id: json['id'],
-      movieId: json['movie_id'],
-      roomId: json['room_id'],
+      id: json['id'] ?? 0,
+      movieId: json['movie_id'] ?? 0,
+      roomId: json['room_id'] ?? 0,
       startTime: parseToLocal(json['start_time']?.toString()),
       endTime: parseToLocal(json['end_time']?.toString()),
       basePrice: parseBasePrice(json['base_price']),
@@ -101,6 +101,8 @@ class SeatModel {
   final String seatType;
   final bool isActive;
   final bool reserved;
+  final String status; // 'Available' or 'Booked'
+  final double price; // Giá từ server (đã tính theo seat_type)
 
   SeatModel({
     required this.id,
@@ -110,9 +112,19 @@ class SeatModel {
     required this.seatType,
     required this.isActive,
     required this.reserved,
+    this.status = 'Available',
+    this.price = 0,
   });
 
   factory SeatModel.fromJson(Map<String, dynamic> json) {
+    double parsePrice(dynamic val) {
+      if (val == null) return 0.0;
+      if (val is double) return val;
+      if (val is int) return val.toDouble();
+      if (val is String) return double.tryParse(val) ?? 0.0;
+      return 0.0;
+    }
+    
     return SeatModel(
       id: json['id'],
       roomId: json['room_id'],
@@ -121,6 +133,8 @@ class SeatModel {
       seatType: json['seat_type'] ?? 'Standard',
       isActive: json['is_active'] ?? true,
       reserved: json['reserved'] ?? false,
+      status: json['status'] ?? 'Available',
+      price: parsePrice(json['price']),
     );
   }
 }
