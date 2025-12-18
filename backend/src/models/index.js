@@ -106,6 +106,12 @@ Payment.belongsTo(Order, { foreignKey: 'order_id' });
 NewsArticle.belongsTo(Movie, { foreignKey: 'movie_id', as: 'linkedMovie' });
 Movie.hasMany(NewsArticle, { foreignKey: 'movie_id', as: 'newsArticles' });
 
+// GroupBooking - Theater, User (theater_id nullable cho trường hợp chưa chọn rạp)
+GroupBooking.belongsTo(Theater, { foreignKey: 'theater_id' });
+Theater.hasMany(GroupBooking, { foreignKey: 'theater_id' });
+GroupBooking.belongsTo(User, { foreignKey: 'user_id' });
+User.hasMany(GroupBooking, { foreignKey: 'user_id' });
+
 // Nếu cần, thêm các association khác ở đây...
 
 // --- Export tất cả ---

@@ -10,6 +10,7 @@ import showtimeRoute from "../src/routes/showtimeRoute.js";
 import reservationRoute from "../src/routes/reservationRoute.js";
 import comboRoute from "../src/routes/comboRoute.js";
 import paymentRoute from "../src/routes/paymentRoute.js";
+import groupBookingRoute from "../src/routes/groupBookingRoute.js";
 import { protectedRoute } from "./middlewares/authMiddleware.js";
 import { initShowtimeStatusJob, initReservationExpiryJob, initTokenCleanupJob, initOrderExpiryJob, initYearlyResetJob } from "./jobs/updateShowtimeStatus.js";
 
@@ -36,6 +37,7 @@ app.use("/api/theaters",theaterRoute);
 app.use("/api/showtimes",showtimeRoute);
 app.use("/api/reservations",reservationRoute);
 app.use("/api/combos",comboRoute);
+app.use("/api/group-bookings",groupBookingRoute);
 
 async function startServer() {
   try {
@@ -44,7 +46,7 @@ async function startServer() {
     // Dùng { force: true } lần đầu nếu cần reset DB
     // Dùng { alter: true } khi cần cập nhật schema (có thể gây lỗi duplicate keys)
     // Dùng {} để chỉ sync mà không thay đổi gì
-    await sequelize.sync();
+    await sequelize.sync({});
 
     // Initialize cron job for updating showtime status
     initShowtimeStatusJob();

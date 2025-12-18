@@ -11,6 +11,7 @@ import '../config/api_config.dart';
 import '../utils/http_helper.dart';
 import 'login_screen.dart';
 import 'change_password_screen.dart';
+import 'group_booking_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -22,6 +23,7 @@ class AccountScreen extends StatefulWidget {
 class _AccountScreenState extends State<AccountScreen> {
   Map<String, dynamic>? _profileData;
   bool _isLoading = true;
+  bool _isUploadingAvatar = false;
   String? _error;
 
   @override
@@ -83,7 +85,7 @@ class _AccountScreenState extends State<AccountScreen> {
 
     if (pickedFile == null) return;
 
-    setState(() => _isLoading = true);
+    setState(() => _isUploadingAvatar = true);
 
     try {
       final authProvider = context.read<AuthProvider>();
@@ -107,21 +109,35 @@ class _AccountScreenState extends State<AccountScreen> {
       );
 
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
         if (mounted) {
+          final newAvatarUrl = data['user']?['avatarUrl'] ?? data['user']?['avatar_url'];
+          
+          // Cập nhật vào AuthProvider để lưu cache
+          if (newAvatarUrl != null) {
+            await authProvider.updateAvatarUrl(newAvatarUrl);
+          }
+          
+          // Update local state
+          setState(() {
+            if (_profileData != null) {
+              _profileData!['user']['avatarUrl'] = newAvatarUrl;
+            }
+            _isUploadingAvatar = false;
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Cập nhật avatar thành công'),
               backgroundColor: Colors.green,
             ),
           );
-          _loadProfile();
         }
       } else {
         throw Exception('Failed to upload avatar');
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() => _isUploadingAvatar = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Lỗi: $e'),
@@ -259,9 +275,11 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   Widget _buildProfileHeader(Map<String, dynamic>? user) {
-    final avatarUrl = user?['avatarUrl'];
-    final fullName = user?['fullName'] ?? 'Người dùng';
-    final email = user?['email'] ?? '';
+    // Ưu tiên lấy avatar từ AuthProvider (đã cache) 
+    final authProvider = context.watch<AuthProvider>();
+    final avatarUrl = authProvider.user?.avatarUrl ?? user?['avatarUrl'];
+    final fullName = user?['fullName'] ?? authProvider.user?.fullName ?? 'Người dùng';
+    final email = user?['email'] ?? authProvider.user?.email ?? '';
 
     return Container(
       width: double.infinity,
@@ -277,13 +295,15 @@ class _AccountScreenState extends State<AccountScreen> {
           const SizedBox(height: 20),
           // Avatar
           GestureDetector(
-            onTap: _pickAndUploadAvatar,
+            onTap: _isUploadingAvatar ? null : _pickAndUploadAvatar,
             child: Stack(
               children: [
                 CircleAvatar(
                   radius: 50,
                   backgroundColor: Colors.white,
-                  child: avatarUrl != null && avatarUrl.isNotEmpty
+                  child: _isUploadingAvatar
+                      ? const CircularProgressIndicator(color: Color(0xFFE53935))
+                      : avatarUrl != null && avatarUrl.isNotEmpty
                       ? ClipOval(
                     child: CachedNetworkImage(
                       imageUrl: avatarUrl,
@@ -306,6 +326,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     color: Colors.grey,
                   ),
                 ),
+                if (!_isUploadingAvatar)
                 Positioned(
                   bottom: 0,
                   right: 0,
@@ -629,6 +650,17 @@ class _AccountScreenState extends State<AccountScreen> {
             icon: Icons.lock_outline,
             title: 'Đổi mật khẩu',
             onTap: _navigateToChangePassword,
+          ),
+          const Divider(height: 1),
+          _buildMenuItem(
+            icon: Icons.groups,
+            title: 'Đặt vé nhóm / Thuê rạp',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const GroupBookingScreen()),
+              );
+            },
           ),
         ],
       ),

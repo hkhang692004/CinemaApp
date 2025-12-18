@@ -8,7 +8,7 @@ export const VNPAY_CONFIG = {
     vnp_HashSecret: process.env.VNPAY_HASH_SECRET ,
     vnp_Url: process.env.VNPAY_URL ,
     // Dùng ngrok URL cho development - VNPay sẽ callback về đây
-    vnp_ReturnUrl: 'https://d3415f499bf2.ngrok-free.app/api/payment/vnpay-return',
+    vnp_ReturnUrl: 'd1dc1d5b76ee.ngrok-free.app/api/payment/vnpay-return',
 };
 
 export default VNPAY_CONFIG;

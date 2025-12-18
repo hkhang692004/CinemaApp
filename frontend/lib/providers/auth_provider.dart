@@ -60,6 +60,14 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateAvatarUrl(String avatarUrl) async {
+    if (_user != null) {
+      _user = _user!.copyWith(avatarUrl: avatarUrl);
+      await _storage.write(key: 'user', value: jsonEncode(_user!.toJson()));
+      notifyListeners();
+    }
+  }
+
   Future<void> clearAll() async {
     _accessToken = null;
     _refreshToken = null;

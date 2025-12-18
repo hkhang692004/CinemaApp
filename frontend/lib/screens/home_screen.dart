@@ -26,7 +26,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   late TabController _tabController;
   int _currentBannerIndex = 0;
   Timer? _bannerTimer;
@@ -35,6 +35,10 @@ class _HomeScreenState extends State<HomeScreen>
   final ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0.0;
   late int _currentBottomNavIndex; // Track bottom nav selection
+
+  // Giữ các widget không bị dispose khi chuyển tab
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -134,86 +138,68 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final movieProvider = context.watch<MovieProvider>();
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
+    
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: IndexedStack(
+        index: _currentBottomNavIndex,
+        children: [
+          _buildHomeContent(),      // Index 0: Trang chủ
+          const AllNewsScreen(),    // Index 1: Tin tức
+          const MyTicketsScreen(),  // Index 2: Vé
+          const TheatersScreen(),   // Index 3: Rạp chiếu
+          const AccountScreen(),    // Index 4: Tài khoản
+        ],
+      ),
+      bottomNavigationBar: _bottomNavigationBar(),
+    );
+  }
+
+  Widget _buildHomeContent() {
     final newsProvider = context.watch<NewsProvider>();
-
-    // Kiểm tra nếu đang ở tab tin tức (index 1)
-    if (_currentBottomNavIndex == 1) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        body: const AllNewsScreen(),
-        bottomNavigationBar: _bottomNavigationBar(),
-      );
-    }
-
-    // Kiểm tra nếu đang ở tab vé (index 2)
-    if (_currentBottomNavIndex == 2) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        body: const MyTicketsScreen(),
-        bottomNavigationBar: _bottomNavigationBar(),
-      );
-    }
-
-    // Kiểm tra nếu đang ở tab rạp chiếu (index 3)
-    if (_currentBottomNavIndex == 3) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        body: const TheatersScreen(),
-        bottomNavigationBar: _bottomNavigationBar(),
-      );
-    }
-
-    // Kiểm tra nếu đang ở tab tài khoản (index 4)
-    if (_currentBottomNavIndex == 4) {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        body: const AccountScreen(),
-        bottomNavigationBar: _bottomNavigationBar(),
-      );
-    }
-
+    final movieProvider = context.watch<MovieProvider>();
+    
     // Trang chủ (mặc định)
     final bannerNews = newsProvider.bannerNews;
     final currentBannerImage = bannerNews.isNotEmpty && _currentBannerIndex < bannerNews.length
         ? bannerNews[_currentBannerIndex].imageUrl
         : (bannerNews.isNotEmpty ? bannerNews[0].imageUrl : null);
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          // Backdrop SliverAppBar với Banner nằm lên trên background
-          SliverAppBar(
-            expandedHeight: 320,
-            pinned: true,
-            elevation: 0,
-            backgroundColor: Colors.white,
+    return CustomScrollView(
+      controller: _scrollController,
+      slivers: [
+        // Backdrop SliverAppBar với Banner nằm lên trên background
+        SliverAppBar(
+          expandedHeight: 320,
+          pinned: true,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
 
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Backdrop ảnh banner
-                  if (currentBannerImage != null && currentBannerImage.isNotEmpty)
-                    CachedNetworkImage(
-                      imageUrl: currentBannerImage,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(color: Colors.grey[800]),
-                      errorWidget: (_, __, ___) => Container(color: Colors.grey[800]),
-                    )
-                  else
-                    Container(color: Colors.grey[800]),
-                  // Blur effect
-                  BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-                    child: Container(color: Colors.transparent),
-                  ),
+          flexibleSpace: FlexibleSpaceBar(
+            background: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Backdrop ảnh banner
+                if (currentBannerImage != null && currentBannerImage.isNotEmpty)
+                  CachedNetworkImage(
+                    imageUrl: currentBannerImage,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => Container(color: Colors.grey[800]),
+                    errorWidget: (_, __, ___) => Container(color: Colors.grey[800]),
+                  )
+                else
+                  Container(color: Colors.grey[800]),
+                // Blur effect
+                BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+                  child: Container(color: Colors.transparent),
+                ),
 
-                  Container(color: Colors.black.withValues(alpha: 0.1)),
-                  // Banner PageView nằm giữa background
+                Container(color: Colors.black.withValues(alpha: 0.1)),
+                // Banner PageView nằm giữa background
                   Positioned(
                     top: MediaQuery.of(context).padding.top + 60,
                     left: 0,
@@ -233,32 +219,33 @@ class _HomeScreenState extends State<HomeScreen>
                 ],
               ),
             ),
-            leading: Container(),
+            leading: const SizedBox(width: 0),
+            leadingWidth: 0,
+            centerTitle: true,
             title: SafeArea(
               bottom: false,
-              child: Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE53935),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.movie, size: 20, color: Colors.white),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE53935),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Absolute Cinema',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: _scrollOffset > 100 ? Colors.black : Colors.white,
-                      ),
+                    child: const Icon(Icons.movie, size: 20, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Absolute Cinema',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: _scrollOffset > 100 ? Colors.black : Colors.white,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -278,10 +265,7 @@ class _HomeScreenState extends State<HomeScreen>
           )
               : _buildMoviesGrid(movieProvider),
         ],
-      ),
-
-      bottomNavigationBar: _bottomNavigationBar(),
-    );
+      );
   }
 
   Widget _buildBannerPageView() {
@@ -472,7 +456,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
+        color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(12),
       ),
       child: TabBar(
@@ -801,7 +785,10 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
       double shrinkOffset,
       bool overlapsContent,
       ) {
-    return SizedBox.expand(child: child);
+    return Container(
+      color: Colors.white,
+      child: child,
+    );
   }
 
   @override
