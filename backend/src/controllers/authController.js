@@ -12,13 +12,13 @@ export const signUp = async (req, res) => {
 export const signIn = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const { accessToken, refreshToken } = await authService.signIn({
+    const { accessToken, refreshToken, user } = await authService.signIn({
       email,
       password,
     });
     return res
       .status(201)
-      .json({ message: "Đăng nhập thành công", accessToken, refreshToken });
+      .json({ message: "Đăng nhập thành công", accessToken, refreshToken, user });
   } catch (err) {
     return res.status(400).json({ message: err.message || "Lỗi hệ thống" });
   }
@@ -66,6 +66,15 @@ export const verifyOTPandReset = async (req, res) => {
     return res
       .status(200)
       .json({ message: "Mật khẩu đã được khôi phục thành công" });
+  } catch (err) {
+    return res.status(400).json({ message: err.message || "Lỗi hệ thống" });
+  }
+};
+
+export const getMe = async (req, res) => {
+  try {
+    const user = await authService.getMe(req.user.id);
+    return res.status(200).json({ user });
   } catch (err) {
     return res.status(400).json({ message: err.message || "Lỗi hệ thống" });
   }

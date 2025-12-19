@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { Showtime, TokenBlacklist, Order, Ticket, SeatReservation, LoyaltyAccount } from '../models/index.js';
+import { Showtime, TokenBlacklist, Order, Ticket, SeatReservation, LoyaltyAccount, DailyStatistic, sequelize } from '../models/index.js';
 import { reservationService } from '../services/reservationService.js';
 import { Op } from 'sequelize';
 
@@ -184,5 +184,132 @@ const initYearlyResetJob = () => {
   console.log('✅ Yearly reset cron job initialized (runs at 00:01 on Jan 1st)');
 };
 
-export { initShowtimeStatusJob, initReservationExpiryJob, initTokenCleanupJob, initOrderExpiryJob, initYearlyResetJob };
+/**
+ * Cron job tổng hợp daily statistics
+ * Chạy lúc 23:55 mỗi ngày
+ * Tính toán và lưu thống kê doanh thu, vé, khách hàng theo ngày
+ */
+const initDailyStatsJob = () => {
+  // Chạy lúc 23:55 mỗi ngày
+  cron.schedule('55 23 * * *', async () => {
+    await aggregateDailyStats();
+  });
+
+  console.log('✅ Daily statistics cron job initialized (runs daily at 23:55)');
+};
+
+/**
+ * Function tổng hợp thống kê - có thể gọi thủ công
+ */
+const aggregateDailyStats = async (targetDate = null) => {
+  try {
+    const statDate = targetDate || new Date().toISOString().split('T')[0];
+    const startOfDay = new Date(statDate + 'T00:00:00');
+    const endOfDay = new Date(statDate + 'T23:59:59');
+
+    console.log(`📊 [${new Date().toISOString()}] Aggregating stats for ${statDate}...`);
+
+    // 1. Thống kê tổng (không theo rạp/phim)
+    const overallStats = await Order.findOne({
+      where: {
+        status: 'Paid',
+        created_at: { [Op.between]: [startOfDay, endOfDay] }
+      },
+      attributes: [
+        [sequelize.fn('SUM', sequelize.col('total_amount')), 'total_revenue'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'total_orders'],
+        [sequelize.fn('COUNT', sequelize.fn('DISTINCT', sequelize.col('user_id'))), 'unique_customers']
+      ],
+      raw: true
+    });
+
+    const totalTickets = await Ticket.count({
+      where: {
+        status: 'Paid',
+        created_at: { [Op.between]: [startOfDay, endOfDay] }
+      }
+    });
+
+    // Upsert overall stats
+    await DailyStatistic.upsert({
+      stat_date: statDate,
+      theater_id: null,
+      movie_id: null,
+      total_tickets_sold: totalTickets,
+      total_revenue: parseFloat(overallStats?.total_revenue || 0),
+      unique_customers: parseInt(overallStats?.unique_customers || 0),
+      updated_at: new Date()
+    });
+
+    // 2. Thống kê theo Theater
+    const theaterStats = await sequelize.query(`
+      SELECT 
+        t.theater_id,
+        SUM(o.total_amount) as total_revenue,
+        COUNT(DISTINCT o.id) as total_orders,
+        COUNT(DISTINCT o.user_id) as unique_customers,
+        COUNT(t.id) as total_tickets
+      FROM orders o
+      JOIN tickets t ON t.order_id = o.id
+      JOIN showtimes s ON s.id = t.showtime_id
+      WHERE o.status = 'Paid'
+        AND o.created_at BETWEEN :startOfDay AND :endOfDay
+      GROUP BY t.theater_id
+    `, {
+      replacements: { startOfDay, endOfDay },
+      type: sequelize.QueryTypes.SELECT
+    });
+
+    for (const stat of theaterStats) {
+      await DailyStatistic.upsert({
+        stat_date: statDate,
+        theater_id: stat.theater_id,
+        movie_id: null,
+        total_tickets_sold: parseInt(stat.total_tickets || 0),
+        total_revenue: parseFloat(stat.total_revenue || 0),
+        unique_customers: parseInt(stat.unique_customers || 0),
+        updated_at: new Date()
+      });
+    }
+
+    // 3. Thống kê theo Movie
+    const movieStats = await sequelize.query(`
+      SELECT 
+        s.movie_id,
+        SUM(o.total_amount) as total_revenue,
+        COUNT(DISTINCT o.id) as total_orders,
+        COUNT(DISTINCT o.user_id) as unique_customers,
+        COUNT(t.id) as total_tickets
+      FROM orders o
+      JOIN tickets t ON t.order_id = o.id
+      JOIN showtimes s ON s.id = t.showtime_id
+      WHERE o.status = 'Paid'
+        AND o.created_at BETWEEN :startOfDay AND :endOfDay
+      GROUP BY s.movie_id
+    `, {
+      replacements: { startOfDay, endOfDay },
+      type: sequelize.QueryTypes.SELECT
+    });
+
+    for (const stat of movieStats) {
+      await DailyStatistic.upsert({
+        stat_date: statDate,
+        theater_id: null,
+        movie_id: stat.movie_id,
+        total_tickets_sold: parseInt(stat.total_tickets || 0),
+        total_revenue: parseFloat(stat.total_revenue || 0),
+        unique_customers: parseInt(stat.unique_customers || 0),
+        updated_at: new Date()
+      });
+    }
+
+    console.log(`✅ [${new Date().toISOString()}] Daily stats aggregated for ${statDate}`);
+    return true;
+  } catch (error) {
+    console.error('❌ Daily stats aggregation error:', error.message);
+    return false;
+  }
+};
+
+export { initShowtimeStatusJob, initReservationExpiryJob, initTokenCleanupJob, initOrderExpiryJob, initYearlyResetJob, initDailyStatsJob, aggregateDailyStats };
 export default initShowtimeStatusJob;

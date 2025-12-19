@@ -20,9 +20,11 @@ import {
     Theater,
     Movie,
     Invoice,
+    User,
     sequelize 
 } from '../models/index.js';
 import { VNPAY_CONFIG } from '../config/vnpay.js';
+import { emitToAdmin, SOCKET_EVENTS } from '../socket.js';
 
 // Config mail (same as authService)
 const transporter = nodemailer.createTransport({
@@ -561,6 +563,17 @@ async function processVnpayReturn(vnpParams) {
             }
 
             await transaction.commit();
+
+            // 🔔 Emit realtime event to admin dashboard
+            const user = await User.findByPk(order.user_id);
+            emitToAdmin(SOCKET_EVENTS.ORDER_PAID, {
+                orderId: order.id,
+                orderCode: order.order_code,
+                customer: user?.full_name || 'Khách hàng',
+                amount: order.total_amount,
+                ticketCount: tickets.length,
+                paidAt: new Date(),
+            });
 
             return { 
                 success: true, 

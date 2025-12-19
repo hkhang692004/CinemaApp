@@ -1,4 +1,5 @@
 import express from "express";
+import http from "http";
 import dotenv from "dotenv";
 import { sequelize } from "./models/index.js"; // import sequelize instance
 import authRoute from "../src/routes/authRoute.js";
@@ -11,14 +12,25 @@ import reservationRoute from "../src/routes/reservationRoute.js";
 import comboRoute from "../src/routes/comboRoute.js";
 import paymentRoute from "../src/routes/paymentRoute.js";
 import groupBookingRoute from "../src/routes/groupBookingRoute.js";
+import managerTheaterRoute from "../src/routes/managerTheaterRoute.js";
+import dashboardRoute from "../src/routes/dashboardRoute.js";
+import reportRoute from "../src/routes/reportRoute.js";
+import managerRoute from "../src/routes/managerRoute.js";
 import { protectedRoute } from "./middlewares/authMiddleware.js";
-import { initShowtimeStatusJob, initReservationExpiryJob, initTokenCleanupJob, initOrderExpiryJob, initYearlyResetJob } from "./jobs/updateShowtimeStatus.js";
+import { initShowtimeStatusJob, initReservationExpiryJob, initTokenCleanupJob, initOrderExpiryJob, initYearlyResetJob, initDailyStatsJob } from "./jobs/updateShowtimeStatus.js";
+import cors from 'cors';
+import { initSocket } from "./socket.js";
 
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5001;
 
+// Initialize Socket.io
+initSocket(server);
+
+app.use(cors({origin: process.env.CLIENT_URL, credentials: true}));
 app.use(express.json());
 //public route
 
@@ -38,14 +50,15 @@ app.use("/api/showtimes",showtimeRoute);
 app.use("/api/reservations",reservationRoute);
 app.use("/api/combos",comboRoute);
 app.use("/api/group-bookings",groupBookingRoute);
+app.use("/api/manager-theaters",managerTheaterRoute);
+app.use("/api/dashboard",dashboardRoute);
+app.use("/api/reports",reportRoute);
+app.use("/api/managers",managerRoute);
 
 async function startServer() {
   try {
 
-    // Đồng bộ các model với DB
-    // Dùng { force: true } lần đầu nếu cần reset DB
-    // Dùng { alter: true } khi cần cập nhật schema (có thể gây lỗi duplicate keys)
-    // Dùng {} để chỉ sync mà không thay đổi gì
+    
     await sequelize.sync({});
 
     // Initialize cron job for updating showtime status
@@ -62,9 +75,13 @@ async function startServer() {
     
     // Initialize cron job for yearly loyalty reset
     initYearlyResetJob();
+    
+    // Initialize cron job for daily statistics aggregation
+    initDailyStatsJob();
 
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server đang chạy trên cổng ${PORT}`);
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Server đang chạy trên cổng ${PORT}`);
+      console.log(`🔌 WebSocket ready`);
     });
   } catch (error) {
     console.error("Lỗi khi kết nối hoặc tạo bảng:", error);

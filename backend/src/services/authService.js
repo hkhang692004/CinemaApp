@@ -67,7 +67,7 @@ export const authService = {
     const { email, password } = data;
     if (!email || !password) throw new Error("Thiếu email hoặc mật khẩu");
 
-    const user = await User.findOne({ where: { email ,role_id: 1 } });
+    const user = await User.findOne({ where: { email } });
     if (!user) throw new Error("Email hoặc mật khẩu sai");
 
     const match = await bcrypt.compare(password, user.password_hash);
@@ -86,7 +86,21 @@ export const authService = {
       expires_at: new Date(Date.now() + REFRESH_TOKEN_TTL),
     });
 
-    return { accessToken, refreshToken };
+    // Get role name
+    const Role = (await import('../models/Role.js')).default;
+    const role = await Role.findByPk(user.role_id);
+
+    return { 
+      accessToken, 
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name,
+        avatar_url: user.avatar_url,
+        role: role?.name || 'user'
+      }
+    };
   },
 
   async refreshToken(token) {
@@ -162,5 +176,24 @@ export const authService = {
     user.otp_expires = null;
     await user.save();
     return true;
+  },
+
+  async getMe(userId) {
+    const user = await User.findByPk(userId, {
+      attributes: ['id', 'email', 'full_name', 'avatar_url', 'phone', 'role_id']
+    });
+    if (!user) throw new Error("Người dùng không tồn tại");
+
+    const Role = (await import('../models/Role.js')).default;
+    const role = await Role.findByPk(user.role_id);
+
+    return {
+      id: user.id,
+      email: user.email,
+      full_name: user.full_name,
+      avatar_url: user.avatar_url,
+      phone: user.phone,
+      role: role?.name || 'user'
+    };
   },
 };

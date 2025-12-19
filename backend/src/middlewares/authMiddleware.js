@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js'
 import  TokenBlacklist  from '../models/TokenBlacklist.js';
+import Role from '../models/Role.js';
 import { Op } from 'sequelize';
 
 export const protectedRoute = async (req, res, next) => {
@@ -47,6 +48,39 @@ export const protectedRoute = async (req, res, next) => {
 
     } catch (error) {
         console.error("Lỗi khi xác minh JWT trong authMiddleware", error);
+        return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};
+
+// Middleware kiểm tra role admin
+export const adminOnly = async (req, res, next) => {
+    try {
+        const role = await Role.findByPk(req.user.role_id);
+        
+        if (!role || role.name !== 'admin') {
+            return res.status(403).json({ message: "Chỉ admin mới có quyền thực hiện" });
+        }
+        
+        next();
+    } catch (error) {
+        console.error("Lỗi adminOnly middleware:", error);
+        return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};
+
+// Middleware kiểm tra role admin hoặc manager
+export const adminOrManager = async (req, res, next) => {
+    try {
+        const role = await Role.findByPk(req.user.role_id);
+        
+        if (!role || (role.name !== 'admin' && role.name !== 'manager')) {
+            return res.status(403).json({ message: "Bạn không có quyền truy cập" });
+        }
+        
+        req.userRole = role.name;
+        next();
+    } catch (error) {
+        console.error("Lỗi adminOrManager middleware:", error);
         return res.status(500).json({ message: "Lỗi hệ thống" });
     }
 };

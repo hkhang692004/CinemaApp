@@ -30,6 +30,7 @@ import DailyStatistic from './DailyStatistic.js';
 import Session from './Session.js';
 import TokenBlacklist from './TokenBlacklist.js';
 import SeatTypePrice from './SeatTypePrice.js';
+import ManagerTheater from './ManagerTheater.js';
 
 // --- Associations ---
 
@@ -112,6 +113,26 @@ Theater.hasMany(GroupBooking, { foreignKey: 'theater_id' });
 GroupBooking.belongsTo(User, { foreignKey: 'user_id' });
 User.hasMany(GroupBooking, { foreignKey: 'user_id' });
 
+// User (Manager) - Theater (Many-to-Many through ManagerTheater)
+User.belongsToMany(Theater, { 
+    through: ManagerTheater, 
+    foreignKey: 'user_id', 
+    otherKey: 'theater_id',
+    as: 'managedTheaters'
+});
+Theater.belongsToMany(User, { 
+    through: ManagerTheater, 
+    foreignKey: 'theater_id', 
+    otherKey: 'user_id',
+    as: 'managers'
+});
+
+// Direct associations for ManagerTheater (để dùng trong include)
+ManagerTheater.belongsTo(User, { foreignKey: 'user_id' });
+ManagerTheater.belongsTo(Theater, { foreignKey: 'theater_id' });
+User.hasMany(ManagerTheater, { foreignKey: 'user_id' });
+Theater.hasMany(ManagerTheater, { foreignKey: 'theater_id' });
+
 // Nếu cần, thêm các association khác ở đây...
 
 // --- Export tất cả ---
@@ -146,4 +167,5 @@ export {
     Session,
     TokenBlacklist,
     SeatTypePrice,
+    ManagerTheater,
 };
