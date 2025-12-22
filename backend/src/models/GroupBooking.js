@@ -6,6 +6,7 @@ export class GroupBooking extends Model { }
 GroupBooking.init({
     id: { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     user_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    booking_code: { type: DataTypes.STRING(30), unique: true }, // Mã đặt chỗ (VD: GRP-ABC123-XYZ)
     
     // Contact info
     full_name: { type: DataTypes.STRING(100), allowNull: false },
@@ -26,10 +27,16 @@ GroupBooking.init({
     // Admin assigns showtime after negotiation
     assigned_showtime_id: { type: DataTypes.INTEGER.UNSIGNED }, // Suất chiếu được gán (có sẵn hoặc tạo mới)
     
+    // Voucher info (for voucher service type)
+    voucher_codes: { type: DataTypes.JSON }, // Array of generated voucher codes [{code, discount_type, discount_value, valid_to}]
+    voucher_quantity: { type: DataTypes.INTEGER }, // Number of vouchers requested
+    
     // Notes and pricing
     notes: { type: DataTypes.TEXT },
     admin_notes: { type: DataTypes.TEXT },
     price: { type: DataTypes.DECIMAL(12, 2) },
+    final_price: { type: DataTypes.DECIMAL(12, 2) }, // Giá cuối cùng sau khi duyệt
+    rejection_reason: { type: DataTypes.TEXT }, // Lý do từ chối hoặc hủy
     
     // Status
     status: { type: DataTypes.ENUM('Requested', 'Processing', 'Approved', 'Rejected', 'Completed', 'Cancelled'), defaultValue: 'Requested' },

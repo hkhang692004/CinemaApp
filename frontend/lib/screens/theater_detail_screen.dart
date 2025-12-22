@@ -7,6 +7,7 @@ import '../models/theater_model.dart';
 import '../models/cinema_room_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/booking_service.dart';
+import '../services/socket_service.dart';
 import 'seat_selection_screen.dart';
 
 class TheaterDetailScreen extends StatefulWidget {
@@ -29,12 +30,35 @@ class _TheaterDetailScreenState extends State<TheaterDetailScreen> {
   bool _isLoadingShowtimes = false;
   DateTime _selectedDate = DateTime.now();
   late List<DateTime> _availableDates;
+  
+  // Socket listener reference for cleanup
+  late void Function(int, String, String) _roomUpdatedListener;
 
   @override
   void initState() {
     super.initState();
     _initDates();
     _loadMovies();
+    _setupSocketListeners();
+  }
+
+  @override
+  void dispose() {
+    // Remove socket listener
+    SocketService.instance.removeRoomUpdatedListener(_roomUpdatedListener);
+    super.dispose();
+  }
+
+  void _setupSocketListeners() {
+    // Listen for room updates - auto refresh data
+    _roomUpdatedListener = (roomId, roomName, screenType) {
+      debugPrint('[TheaterDetail] Room updated: $roomId - $screenType ($roomName)');
+      // Reload showtimes if a movie is selected
+      if (_selectedMovieId != null) {
+        _loadShowtimes(_selectedMovieId!);
+      }
+    };
+    SocketService.instance.addRoomUpdatedListener(_roomUpdatedListener);
   }
 
   void _initDates() {
@@ -533,69 +557,81 @@ class _TheaterDetailScreenState extends State<TheaterDetailScreen> {
   }
 
   Widget _buildShowtimesGrid(Map<String, dynamic> movie) {
-    // Group showtimes by room and filter by selected date
+    // Collect all showtimes from all rooms and group by "screenType - showtimeType"
     print('[TheaterDetail] _buildShowtimesGrid called');
     print('[TheaterDetail] _selectedDate: $_selectedDate');
     print('[TheaterDetail] Total rooms: ${_showtimes.length}');
     
+    // Create a map to group showtimes by "screenType - showtimeType"
+    // Key: "IMAX - 3D Phụ đề", Value: List of {showtime, room}
+    final Map<String, List<Map<String, dynamic>>> groupedShowtimes = {};
+    
+    for (final room in _showtimes) {
+      final filteredShowtimes = (room.showtimes ?? []).where((st) {
+        return _isSameDay(st.startTime, _selectedDate);
+      }).toList();
+      
+      for (final showtime in filteredShowtimes) {
+        // Group key: "Standard - 2D Phụ đề" or "IMAX - 3D Phụ đề"
+        final groupKey = '${room.screenType} - ${showtime.showtimeType}';
+        
+        if (!groupedShowtimes.containsKey(groupKey)) {
+          groupedShowtimes[groupKey] = [];
+        }
+        groupedShowtimes[groupKey]!.add({
+          'showtime': showtime,
+          'room': room,
+        });
+      }
+    }
+    
+    if (groupedShowtimes.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Text(
+            'Không có suất chiếu cho ngày này',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
+      );
+    }
+    
+    // Sort groups by key
+    final sortedKeys = groupedShowtimes.keys.toList()..sort();
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: _showtimes.map((room) {
-        print('[TheaterDetail] Room ${room.name}: ${room.showtimes?.length ?? 0} showtimes');
+      children: sortedKeys.map((groupKey) {
+        final showtimesList = groupedShowtimes[groupKey]!;
+        // Sort by start time
+        showtimesList.sort((a, b) => 
+          (a['showtime'] as ShowtimeModel).startTime.compareTo(
+            (b['showtime'] as ShowtimeModel).startTime
+          )
+        );
         
-        final filteredShowtimes = (room.showtimes ?? []).where((st) {
-          final isSame = _isSameDay(st.startTime, _selectedDate);
-          print('[TheaterDetail]   Showtime ${st.startTime} vs $_selectedDate = $isSame');
-          return isSame;
-        }).toList();
-        
-        print('[TheaterDetail] Room ${room.name}: ${filteredShowtimes.length} filtered showtimes');
-
-        if (filteredShowtimes.isEmpty) return const SizedBox.shrink();
-
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Room name
+            // Group header: "IMAX - 3D Phụ đề"
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  const Icon(Icons.meeting_room, size: 16, color: Color(0xFF044FA2)),
-                  const SizedBox(width: 6),
-                  Text(
-                    room.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF044FA2),
-                    ),
-                  ),
-                  if (room.screenType.isNotEmpty && room.screenType != 'Standard') ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        room.screenType,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.orange,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
+              child: Text(
+                groupKey,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: _getScreenTypeColor(groupKey),
+                ),
               ),
             ),
             // Showtime buttons
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: filteredShowtimes.map((showtime) {
+              children: showtimesList.map((item) {
+                final showtime = item['showtime'] as ShowtimeModel;
+                final room = item['room'] as CinemaRoomModel;
                 final time = DateFormat('HH:mm').format(showtime.startTime);
                 final isPast = showtime.startTime.isBefore(DateTime.now());
 
@@ -610,7 +646,7 @@ class _TheaterDetailScreenState extends State<TheaterDetailScreen> {
                                 showtime: showtime,
                                 movieTitle: movie['title'] ?? '',
                                 theaterName: widget.theater.name,
-                                roomName: room.name,
+                                roomName: room.displayName,
                               ),
                             ),
                           );
@@ -622,7 +658,7 @@ class _TheaterDetailScreenState extends State<TheaterDetailScreen> {
                       color: isPast ? Colors.grey[200] : Colors.white,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: isPast ? Colors.grey[300]! : const Color(0xFF044FA2),
+                        color: isPast ? Colors.grey[300]! : const Color(0xFFD2D2D2),
                       ),
                     ),
                     child: Column(
@@ -630,7 +666,7 @@ class _TheaterDetailScreenState extends State<TheaterDetailScreen> {
                         Text(
                           time,
                           style: TextStyle(
-                            color: isPast ? Colors.grey : const Color(0xFF044FA2),
+                            color: isPast ? Colors.grey : _getScreenTypeColor(groupKey),
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
                           ),
@@ -648,11 +684,21 @@ class _TheaterDetailScreenState extends State<TheaterDetailScreen> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
           ],
         );
       }).toList(),
     );
+  }
+
+  IconData _getScreenTypeIcon(String groupKey) {
+    if (groupKey.contains('3D')) return Icons.threed_rotation;
+    return Icons.movie_outlined;
+  }
+
+  // Single color for all showtime types
+  Color _getScreenTypeColor(String groupKey) {
+    return Colors.black87;
   }
 
   bool _isSameDay(DateTime a, DateTime b) {

@@ -21,10 +21,179 @@ import {
     Movie,
     Invoice,
     User,
+    DailyStatistic,
     sequelize 
 } from '../models/index.js';
 import { VNPAY_CONFIG } from '../config/vnpay.js';
 import { emitToAdmin, SOCKET_EVENTS } from '../socket.js';
+
+/**
+ * Cập nhật DailyStatistic realtime khi payment thành công
+ * @param {Object} order - Order đã thanh toán
+ * @param {Array} tickets - Danh sách tickets
+ */
+const updateDailyStatistics = async (order, tickets) => {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const revenue = parseFloat(order.total_amount) || 0;
+        const ticketCount = tickets.length;
+        const userId = order.user_id;
+
+        // Lấy theater_id và movie_id từ ticket đầu tiên
+        let theaterId = null;
+        let movieId = null;
+        
+        if (tickets.length > 0) {
+            const firstTicket = tickets[0];
+            theaterId = firstTicket.theater_id;
+            
+            // Lấy movie_id từ showtime
+            if (firstTicket.showtime_id) {
+                const showtime = await Showtime.findByPk(firstTicket.showtime_id, {
+                    attributes: ['movie_id']
+                });
+                movieId = showtime?.movie_id;
+            }
+        }
+
+        // 1. Update overall stats (theater_id = null, movie_id = null)
+        const [overallStat] = await DailyStatistic.findOrCreate({
+            where: { stat_date: today, theater_id: null, movie_id: null },
+            defaults: {
+                stat_date: today,
+                theater_id: null,
+                movie_id: null,
+                total_tickets_sold: 0,
+                total_revenue: 0,
+                unique_customers: 0
+            }
+        });
+        
+        await overallStat.increment({
+            total_tickets_sold: ticketCount,
+            total_revenue: revenue
+        });
+        
+        // Check if this is a new unique customer today
+        const existingOrderToday = await Order.count({
+            where: {
+                user_id: userId,
+                status: 'Paid',
+                id: { [Op.ne]: order.id },
+                created_at: {
+                    [Op.gte]: new Date(today + 'T00:00:00'),
+                    [Op.lte]: new Date(today + 'T23:59:59')
+                }
+            }
+        });
+        
+        if (existingOrderToday === 0) {
+            await overallStat.increment({ unique_customers: 1 });
+        }
+
+        // 2. Update theater stats
+        if (theaterId) {
+            const [theaterStat] = await DailyStatistic.findOrCreate({
+                where: { stat_date: today, theater_id: theaterId, movie_id: null },
+                defaults: {
+                    stat_date: today,
+                    theater_id: theaterId,
+                    movie_id: null,
+                    total_tickets_sold: 0,
+                    total_revenue: 0,
+                    unique_customers: 0
+                }
+            });
+            
+            await theaterStat.increment({
+                total_tickets_sold: ticketCount,
+                total_revenue: revenue
+            });
+
+            // Check unique customer for this theater today
+            const existingTheaterOrderToday = await Order.count({
+                where: {
+                    user_id: userId,
+                    status: 'Paid',
+                    id: { [Op.ne]: order.id },
+                    created_at: {
+                        [Op.gte]: new Date(today + 'T00:00:00'),
+                        [Op.lte]: new Date(today + 'T23:59:59')
+                    }
+                },
+                include: [{
+                    model: Ticket,
+                    where: { theater_id: theaterId },
+                    required: true
+                }]
+            });
+            
+            if (existingTheaterOrderToday === 0) {
+                await theaterStat.increment({ unique_customers: 1 });
+            }
+        }
+
+        // 3. Update movie stats
+        if (movieId) {
+            const [movieStat] = await DailyStatistic.findOrCreate({
+                where: { stat_date: today, theater_id: null, movie_id: movieId },
+                defaults: {
+                    stat_date: today,
+                    theater_id: null,
+                    movie_id: movieId,
+                    total_tickets_sold: 0,
+                    total_revenue: 0,
+                    unique_customers: 0
+                }
+            });
+            
+            await movieStat.increment({
+                total_tickets_sold: ticketCount,
+                total_revenue: revenue
+            });
+
+            // Check unique customer for this movie today
+            const existingMovieOrderToday = await Order.count({
+                where: {
+                    user_id: userId,
+                    status: 'Paid',
+                    id: { [Op.ne]: order.id },
+                    created_at: {
+                        [Op.gte]: new Date(today + 'T00:00:00'),
+                        [Op.lte]: new Date(today + 'T23:59:59')
+                    }
+                },
+                include: [{
+                    model: Ticket,
+                    include: [{
+                        model: Showtime,
+                        where: { movie_id: movieId },
+                        required: true
+                    }],
+                    required: true
+                }]
+            });
+            
+            if (existingMovieOrderToday === 0) {
+                await movieStat.increment({ unique_customers: 1 });
+            }
+        }
+
+        console.log(`📊 DailyStatistic updated: +${ticketCount} tickets, +${revenue.toLocaleString()}đ`);
+        
+        // 🔔 Emit stats updated event to admin dashboard
+        emitToAdmin(SOCKET_EVENTS.STATS_UPDATED, {
+            date: today,
+            ticketCount,
+            revenue,
+            theaterId,
+            movieId
+        });
+    } catch (error) {
+        // Log error but don't throw - stats update should not break payment flow
+        console.error('❌ Error updating DailyStatistic:', error.message);
+    }
+};
 
 // Config mail (same as authService)
 const transporter = nodemailer.createTransport({
@@ -337,7 +506,84 @@ async function createOrder(userId, orderData) {
             await appliedPromotion.save({ transaction });
         }
 
+        // Nếu totalAmount < 5000 (VNPay minimum), tự động hoàn thành đơn hàng miễn phí
+        const MIN_VNPAY_AMOUNT = 5000;
+        let isFreeOrder = false;
+        if (totalAmount < MIN_VNPAY_AMOUNT) {
+            isFreeOrder = true;
+            // Cập nhật order thành Paid (vì đã thanh toán xong - miễn phí)
+            await order.update({ status: 'Paid', payment_method: 'Free' }, { transaction });
+            
+            // Cập nhật tickets thành Paid
+            await Ticket.update(
+                { status: 'Paid' },
+                { where: { order_id: order.id }, transaction }
+            );
+
+            // Cập nhật reservation thành Confirmed (đã thanh toán xong)
+            await SeatReservation.update(
+                { status: 'Confirmed' },
+                { 
+                    where: { 
+                        showtime_id: showtimeId,
+                        seat_id: { [Op.in]: seatIds },
+                        user_id: userId
+                    },
+                    transaction 
+                }
+            );
+
+            // Tạo payment record cho đơn miễn phí
+            await Payment.create({
+                order_id: order.id,
+                provider: 'Free',
+                provider_payment_id: `FREE_${order.order_code}`,
+                amount: 0,
+                currency: 'VND',
+                status: 'Success',
+                response_data: { freeOrder: true, originalAmount: subtotal }
+            }, { transaction });
+        }
+
         await transaction.commit();
+
+        // 🔔 Emit realtime event for new order created
+        const user = await User.findByPk(userId);
+        emitToAdmin(SOCKET_EVENTS.NEW_ORDER, {
+            orderId: order.id,
+            orderCode: order.order_code,
+            customer: user?.full_name || 'Khách hàng',
+            amount: totalAmount,
+            ticketCount: seatIds.length,
+            status: isFreeOrder ? 'Paid' : 'Pending',
+            createdAt: new Date()
+        });
+
+        // 🔔 Emit realtime event to admin dashboard for free orders
+        if (isFreeOrder) {
+            console.log('🔔 Emitting ORDER_PAID for free order:', order.order_code);
+            emitToAdmin(SOCKET_EVENTS.ORDER_PAID, {
+                orderId: order.id,
+                orderCode: order.order_code,
+                customer: user?.full_name || 'Khách hàng',
+                amount: totalAmount,
+                ticketCount: seatIds.length,
+                paidAt: new Date(),
+                isFreeOrder: true
+            });
+
+            // � Update daily statistics realtime for free orders
+            const tickets = await Ticket.findAll({ where: { order_id: order.id } });
+            await updateDailyStatistics(order, tickets);
+
+            // �🔔 Emit combo update nếu order có combo
+            if (combos && combos.length > 0) {
+                console.log('🔔 Emitting COMBO_UPDATED (free order) for combos:', combos.map(c => c.comboId));
+                emitToAdmin(SOCKET_EVENTS.COMBO_UPDATED, {
+                    comboIds: combos.map(c => c.comboId)
+                });
+            }
+        }
 
         return {
             orderId: order.id,
@@ -348,7 +594,8 @@ async function createOrder(userId, orderData) {
             promotionCode: appliedPromotion?.code || null,
             totalAmount,
             ticketCount: seatIds.length,
-            comboCount: combos?.length || 0
+            comboCount: combos?.length || 0,
+            isFreeOrder // Thêm flag để frontend biết đơn hàng miễn phí
         };
     } catch (error) {
         await transaction.rollback();
@@ -564,7 +811,10 @@ async function processVnpayReturn(vnpParams) {
 
             await transaction.commit();
 
-            // 🔔 Emit realtime event to admin dashboard
+            // � Update daily statistics realtime
+            await updateDailyStatistics(order, tickets);
+
+            // �🔔 Emit realtime event to admin dashboard
             const user = await User.findByPk(order.user_id);
             emitToAdmin(SOCKET_EVENTS.ORDER_PAID, {
                 orderId: order.id,
@@ -574,6 +824,18 @@ async function processVnpayReturn(vnpParams) {
                 ticketCount: tickets.length,
                 paidAt: new Date(),
             });
+
+            // 🔔 Emit combo update nếu order có combo
+            const comboOrders = await ComboOrder.findAll({
+                where: { order_id: order.id },
+                attributes: ['combo_id']
+            });
+            if (comboOrders.length > 0) {
+                console.log('🔔 Emitting COMBO_UPDATED for combos:', comboOrders.map(co => co.combo_id));
+                emitToAdmin(SOCKET_EVENTS.COMBO_UPDATED, {
+                    comboIds: comboOrders.map(co => co.combo_id)
+                });
+            }
 
             return { 
                 success: true, 

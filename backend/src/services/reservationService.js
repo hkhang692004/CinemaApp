@@ -1,6 +1,8 @@
 import { SeatReservation } from "../models/SeatReservation.js";
 import { Seat } from "../models/Seat.js";
 import { Showtime } from "../models/Showtime.js";
+import { CinemaRoom } from "../models/CinemaRoom.js";
+import { Theater } from "../models/Theater.js";
 import { Op } from "sequelize";
 
 const RESERVATION_DURATION_MINUTES = 10;
@@ -9,9 +11,20 @@ export const reservationService = {
     // Tạo reservations (giữ ghế)
     async createReservations(showtimeId, seatIds, userId) {
         // Validate showtime exists
-        const showtime = await Showtime.findByPk(showtimeId);
+        const showtime = await Showtime.findByPk(showtimeId, {
+            include: [{
+                model: CinemaRoom,
+                include: [{ model: Theater }]
+            }]
+        });
         if (!showtime) {
             throw new Error("Suất chiếu không tồn tại");
+        }
+
+        // Kiểm tra rạp có đang hoạt động không
+        const theater = showtime.CinemaRoom?.Theater;
+        if (!theater || !theater.is_active) {
+            throw new Error("Rạp chiếu hiện đang tạm đóng, không thể đặt vé");
         }
 
         // Validate seats exist

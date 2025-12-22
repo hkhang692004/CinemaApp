@@ -11,6 +11,16 @@ DailyStatistic.init({
     total_tickets_sold: { type: DataTypes.INTEGER, defaultValue: 0 },
     total_revenue: { type: DataTypes.DECIMAL(14, 2), defaultValue: 0 },
     unique_customers: { type: DataTypes.INTEGER, defaultValue: 0 },
+    
+    // Group Booking Statistics
+    group_ticket_revenue: { type: DataTypes.DECIMAL(14, 2), defaultValue: 0 },      // Doanh thu đặt vé nhóm
+    group_ticket_count: { type: DataTypes.INTEGER, defaultValue: 0 },               // Số booking đặt vé nhóm
+    private_show_revenue: { type: DataTypes.DECIMAL(14, 2), defaultValue: 0 },      // Doanh thu chiếu riêng
+    private_show_count: { type: DataTypes.INTEGER, defaultValue: 0 },               // Số booking chiếu riêng
+    hall_rental_revenue: { type: DataTypes.DECIMAL(14, 2), defaultValue: 0 },       // Doanh thu thuê hội trường
+    hall_rental_count: { type: DataTypes.INTEGER, defaultValue: 0 },                // Số booking thuê hội trường
+    group_booking_guests: { type: DataTypes.INTEGER, defaultValue: 0 },             // Tổng số khách từ group booking
+    
     created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
 }, {

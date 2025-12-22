@@ -29,7 +29,7 @@ Movie.init(
       type: DataTypes.ENUM("coming_soon", "now_showing", "ended"),
       defaultValue: "coming_soon",
     },
-    avg_rating: { type: DataTypes.DECIMAL(2, 1), defaultValue: 0 },
+    avg_rating: { type: DataTypes.DECIMAL(3, 1), defaultValue: 0 },
 
     created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },

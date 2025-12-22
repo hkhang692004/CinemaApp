@@ -16,8 +16,11 @@ import managerTheaterRoute from "../src/routes/managerTheaterRoute.js";
 import dashboardRoute from "../src/routes/dashboardRoute.js";
 import reportRoute from "../src/routes/reportRoute.js";
 import managerRoute from "../src/routes/managerRoute.js";
+import promotionRoute from "../src/routes/promotionRoute.js";
+import loyaltyRoute from "../src/routes/loyaltyRoute.js";
+import orderRoute from "../src/routes/orderRoute.js";
 import { protectedRoute } from "./middlewares/authMiddleware.js";
-import { initShowtimeStatusJob, initReservationExpiryJob, initTokenCleanupJob, initOrderExpiryJob, initYearlyResetJob, initDailyStatsJob } from "./jobs/updateShowtimeStatus.js";
+import { initShowtimeStatusJob, initReservationExpiryJob, initTokenCleanupJob, initOrderExpiryJob, initYearlyResetJob } from "./jobs/updateShowtimeStatus.js";
 import cors from 'cors';
 import { initSocket } from "./socket.js";
 
@@ -31,11 +34,13 @@ const PORT = process.env.PORT || 5001;
 initSocket(server);
 
 app.use(cors({origin: process.env.CLIENT_URL, credentials: true}));
-app.use(express.json());
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 //public route
 
 app.use("/api/auth", authRoute);
-// Payment route - có cả public và protected routes (xử lý trong route file)
+// Payment route 
 app.use("/api/payment", paymentRoute);
 
 //authmidlleware
@@ -54,12 +59,15 @@ app.use("/api/manager-theaters",managerTheaterRoute);
 app.use("/api/dashboard",dashboardRoute);
 app.use("/api/reports",reportRoute);
 app.use("/api/managers",managerRoute);
+app.use("/api/promotions",promotionRoute);
+app.use("/api/loyalty",loyaltyRoute);
+app.use("/api/orders",orderRoute);
 
 async function startServer() {
   try {
 
     
-    await sequelize.sync({});
+    await sequelize.sync(); 
 
     // Initialize cron job for updating showtime status
     initShowtimeStatusJob();
@@ -76,8 +84,7 @@ async function startServer() {
     // Initialize cron job for yearly loyalty reset
     initYearlyResetJob();
     
-    // Initialize cron job for daily statistics aggregation
-    initDailyStatsJob();
+    // Daily statistics now updated realtime in paymentService when payment success
 
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server đang chạy trên cổng ${PORT}`);

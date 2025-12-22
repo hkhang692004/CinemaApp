@@ -8,15 +8,19 @@ import AdminLayout from './components/AdminLayout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import MoviesPage from './pages/MoviesPage';
+import GenresPage from './pages/GenresPage';
+import TheatersPage from './pages/TheatersPage';
+import ShowtimesPage from './pages/ShowtimesPage';
+import NewsPage from './pages/NewsPage';
 import ReportsPage from './pages/ReportsPage';
 import ManagersPage from './pages/ManagersPage';
-
-// Placeholder pages
-const ShowtimesPage = () => <PlaceholderPage title="Quản lý Suất chiếu" />;
-const OrdersPage = () => <PlaceholderPage title="Quản lý Đơn hàng" />;
-const GroupBookingsPage = () => <PlaceholderPage title="Quản lý Đặt vé nhóm" />;
-const CombosPage = () => <PlaceholderPage title="Quản lý Combo" />;
-const NewsPage = () => <PlaceholderPage title="Quản lý Tin tức" />;
+import SeatPricesPage from './pages/SeatPricesPage';
+import VouchersPage from './pages/VouchersPage';
+import LoyaltyPage from './pages/LoyaltyPage';
+import OrdersPage from './pages/OrdersPage';
+import CombosPage from './pages/CombosPage';
+import GroupBookingsPage from './pages/GroupBookingsPage';
+import ProfilePage from './pages/ProfilePage';
 
 const PlaceholderPage = ({ title }) => (
   <div className="bg-white rounded-xl p-8 text-center">
@@ -38,13 +42,19 @@ function App() {
               <Route element={<AdminLayout />}>
                 <Route index element={<DashboardPage />} />
                 <Route path="movies" element={<MoviesPage />} />
+                <Route path="genres" element={<GenresPage />} />
+                <Route path="theaters" element={<TheatersPage />} />
                 <Route path="showtimes" element={<ShowtimesPage />} />
+                <Route path="seat-prices" element={<SeatPricesPage />} />
                 <Route path="orders" element={<OrdersPage />} />
                 <Route path="group-bookings" element={<GroupBookingsPage />} />
                 <Route path="combos" element={<CombosPage />} />
+                <Route path="vouchers" element={<VouchersPage />} />
+                <Route path="loyalty" element={<LoyaltyPage />} />
                 <Route path="news" element={<NewsPage />} />
                 <Route path="managers" element={<ManagersPage />} />
                 <Route path="reports" element={<ReportsPage />} />
+                <Route path="profile" element={<ProfilePage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Route>

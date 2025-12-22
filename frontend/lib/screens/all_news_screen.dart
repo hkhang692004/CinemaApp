@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cinema_app/models/news.dart';
 import 'package:cinema_app/providers/news_provider.dart';
 import 'package:cinema_app/screens/news_detail_screen.dart';
+import 'package:cinema_app/services/socket_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -19,6 +20,10 @@ class _AllNewsScreenState extends State<AllNewsScreen> {
   final int _pageSize = 6;
   bool _isLoadingMore = false;
   String _searchQuery = '';
+  
+  // Store listener references for removal
+  late void Function(int) _newsUpdatedListener;
+  late void Function(int) _newsDeletedListener;
 
   @override
   void initState() {
@@ -27,6 +32,9 @@ class _AllNewsScreenState extends State<AllNewsScreen> {
     _searchController = TextEditingController();
     _scrollController.addListener(_onScroll);
     
+    // Setup socket listeners for news updates
+    _setupNewsSocketListeners();
+    
     // Load first page
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -34,6 +42,46 @@ class _AllNewsScreenState extends State<AllNewsScreen> {
         context.read<NewsProvider>().loadPaginatedNews(page: 1, pageSize: _pageSize);
       }
     });
+  }
+
+  void _setupNewsSocketListeners() {
+    // Lắng nghe khi có tin tức mới
+    SocketService.instance.onNewsCreated = () {
+      if (mounted) {
+        debugPrint('📰 News created, refreshing list...');
+        _refreshNews();
+      }
+    };
+    
+    // Create listener functions
+    _newsUpdatedListener = (newsId) {
+      if (mounted) {
+        debugPrint('📰 News $newsId updated, refreshing list...');
+        _refreshNews();
+      }
+    };
+    
+    _newsDeletedListener = (newsId) {
+      if (mounted) {
+        debugPrint('📰 News $newsId deleted, refreshing list...');
+        _refreshNews();
+      }
+    };
+    
+    // Add listeners
+    SocketService.instance.addNewsUpdatedListener(_newsUpdatedListener);
+    SocketService.instance.addNewsDeletedListener(_newsDeletedListener);
+  }
+
+  void _refreshNews() {
+    setState(() {
+      _currentPage = 1;
+    });
+    context.read<NewsProvider>().loadPaginatedNews(
+      page: 1, 
+      pageSize: _pageSize,
+      search: _searchQuery.isNotEmpty ? _searchQuery : null,
+    );
   }
 
   void _onScroll() {
@@ -95,6 +143,10 @@ class _AllNewsScreenState extends State<AllNewsScreen> {
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
+    // Remove socket listeners
+    SocketService.instance.onNewsCreated = null;
+    SocketService.instance.removeNewsUpdatedListener(_newsUpdatedListener);
+    SocketService.instance.removeNewsDeletedListener(_newsDeletedListener);
     super.dispose();
   }
 

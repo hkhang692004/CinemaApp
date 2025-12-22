@@ -29,6 +29,7 @@ class OrderResult {
   final double totalAmount;
   final int ticketCount;
   final int comboCount;
+  final bool isFreeOrder; // Đơn hàng miễn phí (không cần VNPay)
 
   OrderResult({
     required this.orderId,
@@ -38,6 +39,7 @@ class OrderResult {
     required this.totalAmount,
     required this.ticketCount,
     required this.comboCount,
+    this.isFreeOrder = false,
   });
 
   factory OrderResult.fromJson(Map<String, dynamic> json) {
@@ -49,6 +51,7 @@ class OrderResult {
       totalAmount: double.tryParse(json['totalAmount'].toString()) ?? 0,
       ticketCount: json['ticketCount'] ?? 0,
       comboCount: json['comboCount'] ?? 0,
+      isFreeOrder: json['isFreeOrder'] == true,
     );
   }
 }

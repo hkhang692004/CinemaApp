@@ -84,3 +84,30 @@ export const adminOrManager = async (req, res, next) => {
         return res.status(500).json({ message: "Lỗi hệ thống" });
     }
 };
+
+// Middleware kiểm tra role động
+export const checkRole = (allowedRoles) => {
+    return async (req, res, next) => {
+        try {
+            const role = await Role.findByPk(req.user.role_id);
+            
+            if (!role) {
+                return res.status(403).json({ message: "Không tìm thấy role" });
+            }
+
+            // Normalize role names (Admin, admin, ADMIN -> admin)
+            const normalizedAllowed = allowedRoles.map(r => r.toLowerCase());
+            const userRole = role.name.toLowerCase();
+
+            if (!normalizedAllowed.includes(userRole)) {
+                return res.status(403).json({ message: "Bạn không có quyền truy cập" });
+            }
+            
+            req.userRole = role.name;
+            next();
+        } catch (error) {
+            console.error("Lỗi checkRole middleware:", error);
+            return res.status(500).json({ message: "Lỗi hệ thống" });
+        }
+    };
+};

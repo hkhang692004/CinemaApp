@@ -37,6 +37,9 @@ api.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refreshToken');
         if (!refreshToken) {
+          // Không có refresh token → redirect về login
+          localStorage.removeItem('accessToken');
+          window.location.href = '/login';
           return Promise.reject(error);
         }
         
@@ -50,9 +53,10 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
+        // Refresh token cũng hết hạn → xóa token và redirect về login
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        // Không redirect ở đây, để component tự xử lý
+        window.location.href = '/login';
         return Promise.reject(refreshError);
       }
     }

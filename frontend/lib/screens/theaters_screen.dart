@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/theater_model.dart';
 import '../providers/auth_provider.dart';
 import '../services/booking_service.dart';
+import '../services/socket_service.dart';
 import 'theater_detail_screen.dart';
 
 class TheatersScreen extends StatefulWidget {
@@ -23,6 +24,26 @@ class _TheatersScreenState extends State<TheatersScreen> {
   void initState() {
     super.initState();
     _loadTheaters();
+    _setupSocketListeners();
+  }
+
+  @override
+  void dispose() {
+    // Clear callbacks when screen is disposed
+    SocketService.instance.onTheaterClosed = null;
+    SocketService.instance.onTheaterUpdated = null;
+    super.dispose();
+  }
+
+  void _setupSocketListeners() {
+    // Lắng nghe khi có rạp bị tạm đóng hoặc cập nhật -> refresh lại danh sách
+    SocketService.instance.onTheaterClosed = (theaterId, theaterName, message) {
+      _loadTheaters(); // Refresh để ẩn rạp đã tạm đóng
+    };
+    
+    SocketService.instance.onTheaterUpdated = (theaterId) {
+      _loadTheaters(); // Refresh khi có cập nhật
+    };
   }
 
   Future<void> _loadTheaters() async {

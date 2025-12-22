@@ -19,7 +19,8 @@ import {
     LoyaltyTierRate,
     LoyaltyTierRequirement,
     LoyaltyAccount,
-    SeatTypePrice
+    SeatTypePrice,
+    GroupBooking
 } from './models/index.js';
 
 // =====================================================
@@ -513,6 +514,9 @@ async function seedCombos() {
 async function seedBooking() {
     console.log("\n🏢 Seeding Theaters, Rooms, Seats, Showtimes...");
     
+    // Xóa các bảng có foreign key tham chiếu đến theaters trước
+    await GroupBooking.destroy({ where: {} });
+    
     // Theaters
     await Theater.destroy({ where: {} });
     const theaters = await Theater.bulkCreate(theatersData);
@@ -575,6 +579,9 @@ async function seedBooking() {
         { hour: 21, minute: 30 },
     ];
     
+    // Showtime types - all rooms can have all types
+    const showtimeTypes = ['2D Phụ đề Việt', '2D Lồng tiếng Việt', '3D Phụ đề Việt', '3D Lồng tiếng Việt'];
+    
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
         timeSlots.forEach((slot, slotIdx) => {
             rooms.forEach((room, roomIdx) => {
@@ -590,12 +597,17 @@ async function seedBooking() {
                 if (room.screen_type === "IMAX") basePrice = 150000;
                 if (room.screen_type === "4DX") basePrice = 180000;
                 
+                // Rotate through all showtime types for variety
+                // Each slot gets a different type, cycling through all 4
+                const showtimeType = showtimeTypes[(slotIdx + roomIdx + dayOffset) % showtimeTypes.length];
+                
                 showtimes.push({
                     movie_id: movies[movieIdx].id,
                     room_id: room.id,
                     start_time: startTime,
                     end_time: endTime,
                     base_price: basePrice,
+                    showtime_type: showtimeType,
                     status: "Scheduled",
                 });
             });

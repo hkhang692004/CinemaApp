@@ -2,17 +2,72 @@ import 'dart:async';
 import 'package:cinema_app/models/movie.dart';
 import 'package:cinema_app/providers/auth_provider.dart';
 import 'package:cinema_app/services/movie_service.dart';
+import 'package:cinema_app/services/socket_service.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class MovieProvider extends ChangeNotifier {
   MovieService? _movieService;
   AuthProvider? _authProvider; // Không dùng final để có thể update
+  final SocketService _socketService = SocketService.instance;
 
   MovieProvider(AuthProvider? authProvider) {
     _authProvider = authProvider;
     if (authProvider != null) {
       _movieService = MovieService(authProvider);
+    }
+    _initSocketListeners();
+  }
+
+  /// Khởi tạo socket listeners
+  void _initSocketListeners() {
+    _socketService.connect();
+    
+    _socketService.onMovieCreated = () {
+      debugPrint('🔄 Refreshing movies due to movie-created event');
+      _refreshAllMovies();
+    };
+    
+    _socketService.onMovieUpdated = (int movieId) {
+      debugPrint('🔄 Refreshing movies due to movie-updated event (movieId: $movieId)');
+      _refreshAllMovies();
+      // Nếu đang xem chi tiết phim này, refresh luôn selectedMovie
+      if (_selectedMovie != null && _selectedMovie!.id == movieId) {
+        _refreshSelectedMovie(movieId);
+      }
+    };
+    
+    _socketService.onMovieDeleted = (int movieId) {
+      debugPrint('🔄 Refreshing movies due to movie-deleted event (movieId: $movieId)');
+      _refreshAllMovies();
+      // Nếu đang xem chi tiết phim bị xóa, clear selectedMovie
+      if (_selectedMovie != null && _selectedMovie!.id == movieId) {
+        _selectedMovie = null;
+        notifyListeners();
+      }
+    };
+  }
+
+  /// Refresh selectedMovie khi nó được cập nhật
+  Future<void> _refreshSelectedMovie(int movieId) async {
+    try {
+      _selectedMovie = await movieService.getDetailMovie(movieId);
+      notifyListeners();
+      debugPrint('✅ Selected movie refreshed successfully');
+    } catch (e) {
+      debugPrint('❌ Error refreshing selected movie: $e');
+    }
+  }
+
+  /// Refresh tất cả movies (silent - không hiển thị loading)
+  Future<void> _refreshAllMovies() async {
+    try {
+      _nowShowingMovies = await movieService.getNowShowingMovies();
+      _comingSoonMovies = await movieService.getComingSoonMovies();
+      notifyListeners();
+      debugPrint('✅ Movies refreshed successfully');
+    } catch (e) {
+      debugPrint('❌ Error refreshing movies: $e');
     }
   }
 

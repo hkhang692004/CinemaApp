@@ -12,6 +12,7 @@ import 'package:cinema_app/screens/all_news_screen.dart';
 import 'package:cinema_app/screens/my_tickets_screen.dart';
 import 'package:cinema_app/screens/theaters_screen.dart';
 import 'package:cinema_app/screens/account_screen.dart';
+import 'package:cinema_app/services/socket_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -35,6 +36,9 @@ class _HomeScreenState extends State<HomeScreen>
   final ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0.0;
   late int _currentBottomNavIndex; // Track bottom nav selection
+  
+  // Store listener reference for removal
+  late void Function(int) _newsUpdatedListener;
 
   // Giữ các widget không bị dispose khi chuyển tab
   @override
@@ -57,6 +61,8 @@ class _HomeScreenState extends State<HomeScreen>
       context.read<NewsProvider>().loadBannerNews();
     });
 
+    // Setup socket listeners for banner updates
+    _setupBannerSocketListeners();
 
     _bannerInitialPage = 1000; // số lớn để tránh nhảy về đầu
     _bannerPageController = PageController(initialPage: _bannerInitialPage);
@@ -107,6 +113,34 @@ class _HomeScreenState extends State<HomeScreen>
     _startBannerAutoPlay();
   }
 
+  void _setupBannerSocketListeners() {
+    // Lắng nghe khi banner được cập nhật từ admin
+    SocketService.instance.onBannerUpdated = () {
+      if (mounted) {
+        debugPrint('🖼️ Banner updated, refreshing...');
+        context.read<NewsProvider>().loadBannerNews();
+      }
+    };
+    
+    // Lắng nghe khi thứ tự banner thay đổi
+    SocketService.instance.onBannersReordered = () {
+      if (mounted) {
+        debugPrint('🖼️ Banners reordered, refreshing...');
+        context.read<NewsProvider>().loadBannerNews();
+      }
+    };
+    
+    // Lắng nghe khi tin tức được cập nhật (bao gồm thay đổi linkedMovie)
+    _newsUpdatedListener = (newsId) {
+      if (mounted) {
+        // Refresh banner list vì tin tức có thể là banner
+        debugPrint('📰 News $newsId updated, refreshing banners...');
+        context.read<NewsProvider>().loadBannerNews();
+      }
+    };
+    SocketService.instance.addNewsUpdatedListener(_newsUpdatedListener);
+  }
+
   void _handleTabChange() {
     if (!_tabController.indexIsChanging) {
       setState(() {}); // Rebuild UI khi tab thay đổi
@@ -133,6 +167,10 @@ class _HomeScreenState extends State<HomeScreen>
     _scrollController.dispose();
     _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
+    // Clear socket callbacks
+    SocketService.instance.onBannerUpdated = null;
+    SocketService.instance.onBannersReordered = null;
+    SocketService.instance.removeNewsUpdatedListener(_newsUpdatedListener);
     super.dispose();
   }
 
@@ -740,30 +778,37 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _bottomNavigationBar() {
-    return BottomNavigationBar(
-      backgroundColor: Colors.white,
-      selectedItemColor: const Color(0xFFE53935),
-      unselectedItemColor: Colors.grey,
-      elevation: 8,
-      type: BottomNavigationBarType.fixed,
-      currentIndex: _currentBottomNavIndex,
-      onTap: (index) {
-        if (index != _currentBottomNavIndex) {
-          setState(() {
-            _currentBottomNavIndex = index;
-          });
-        }
-      },
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Trang chủ'),
-        BottomNavigationBarItem(icon: Icon(Icons.newspaper), label: 'Tin tức'),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.confirmation_number),
-          label: 'Vé',
-        ),
-        BottomNavigationBarItem(icon: Icon(Icons.movie_outlined), label: 'Rạp chiếu'),
-        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Tài khoản'),
-      ],
+    return Theme(
+      data: Theme.of(context).copyWith(
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+      ),
+      child: BottomNavigationBar(
+        backgroundColor: Colors.white,
+        selectedItemColor: const Color(0xFFE53935),
+        unselectedItemColor: Colors.grey,
+        elevation: 8,
+        type: BottomNavigationBarType.fixed,
+        enableFeedback: false,
+        currentIndex: _currentBottomNavIndex,
+        onTap: (index) {
+          if (index != _currentBottomNavIndex) {
+            setState(() {
+              _currentBottomNavIndex = index;
+            });
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Trang chủ'),
+          BottomNavigationBarItem(icon: Icon(Icons.newspaper), label: 'Tin tức'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.confirmation_number),
+            label: 'Vé',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.movie_outlined), label: 'Rạp chiếu'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Tài khoản'),
+        ],
+      ),
     );
   }
 }

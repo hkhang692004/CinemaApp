@@ -50,14 +50,21 @@ void main() async {
           },
         ),
         ChangeNotifierProxyProvider<AuthProvider, SeatSelectionProvider>(
-          create: (_) => SeatSelectionProvider(AuthProvider()),
+          create: (context) {
+            print('🟡 SeatSelectionProvider CREATE called - new instance');
+            return SeatSelectionProvider(
+              Provider.of<AuthProvider>(context, listen: false),
+            );
+          },
           update: (_, authProvider, previous) {
-            if (previous == null) {
-              return SeatSelectionProvider(authProvider);
-            } else {
-              // Update authProvider in existing instance
-              return SeatSelectionProvider(authProvider);
+            print('🟡 SeatSelectionProvider UPDATE called - previous: $previous');
+            if (previous != null) {
+              // Update authProvider in existing instance instead of creating new
+              previous.updateAuthProvider(authProvider);
+              return previous;
             }
+            print('🔴 SeatSelectionProvider UPDATE - creating new (previous was null!)');
+            return SeatSelectionProvider(authProvider);
           },
         ),
       ],

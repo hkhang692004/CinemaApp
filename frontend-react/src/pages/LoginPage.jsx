@@ -165,6 +165,11 @@ const LoginPage = () => {
                 'Đăng nhập'
               )}
             </button>
+
+            {/* Forgot password notice */}
+            <p className="text-center text-white/50 text-sm mt-4">
+              Quên mật khẩu? <span className="text-red-400">Vui lòng liên hệ Admin</span>
+            </p>
           </form>
 
           {/* Footer */}

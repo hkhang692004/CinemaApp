@@ -416,6 +416,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
         promotionCode: _appliedPromoCode,
       );
 
+      // Nếu đơn hàng miễn phí (< 5000đ), chuyển thẳng tới màn hình thành công
+      if (orderResult.isFreeOrder) {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PaymentSuccessScreen(
+                orderId: orderResult.orderId,
+                orderCode: orderResult.orderCode,
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
       // Tạo VNPay payment URL
       final paymentUrl = await paymentService.createVnpayPayment(
         orderResult.orderId,

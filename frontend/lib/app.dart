@@ -5,6 +5,7 @@ import 'package:app_links/app_links.dart';
 import 'package:cinema_app/config/navigator_key.dart';
 import 'package:cinema_app/providers/auth_provider.dart';
 import 'package:cinema_app/services/payment_service.dart';
+import 'package:cinema_app/services/socket_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/payment_success_screen.dart';
 
@@ -18,17 +19,139 @@ class App extends StatefulWidget {
 class _AppState extends State<App> {
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
+  
+  // Socket listener reference for cleanup
+  late void Function(int, String, String) _roomUpdatedListener;
 
   @override
   void initState() {
     super.initState();
     _initDeepLinks();
+    _initSocketListeners();
   }
 
   @override
   void dispose() {
     _linkSubscription?.cancel();
+    SocketService.instance.removeRoomUpdatedListener(_roomUpdatedListener);
     super.dispose();
+  }
+
+  void _initSocketListeners() {
+    // Listen for theater closed event
+    SocketService.instance.onTheaterClosed = (theaterId, theaterName, message) {
+      _showTheaterClosedNotification(theaterName, message);
+    };
+    
+    // Listen for room closed (maintenance) event
+    SocketService.instance.onRoomClosed = (roomId, theaterId, roomName, message) {
+      _showRoomClosedNotification(roomName, message);
+    };
+    
+    // Listen for room updated event - add to listener list
+    _roomUpdatedListener = (roomId, roomName, screenType) {
+      _showRoomUpdatedNotification(roomName, screenType);
+    };
+    SocketService.instance.addRoomUpdatedListener(_roomUpdatedListener);
+  }
+
+  void _showTheaterClosedNotification(String theaterName, String message) {
+    if (navigatorKey.currentContext != null) {
+      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Thông báo',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(message),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange.shade700,
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }
+  }
+
+  void _showRoomClosedNotification(String roomName, String message) {
+    if (navigatorKey.currentContext != null) {
+      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.build_rounded, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Thông báo bảo trì',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(message),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange.shade700,
+          duration: const Duration(seconds: 5),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }
+  }
+
+  void _showRoomUpdatedNotification(String roomName, String screenType) {
+    if (navigatorKey.currentContext != null) {
+      ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.info_outline, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Cập nhật phòng chiếu',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text('$screenType ($roomName) đã được cập nhật'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.blue.shade700,
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }
   }
 
   Future<void> _initDeepLinks() async {

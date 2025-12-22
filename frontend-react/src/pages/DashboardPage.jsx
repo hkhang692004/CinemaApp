@@ -13,20 +13,24 @@ import {
   BarChart3,
   RefreshCw,
   Bell,
+  UsersRound,
+  Building2,
 } from 'lucide-react';
 import api from '../config/api';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { socket, connectSocket, disconnectSocket, SOCKET_EVENTS } from '../config/socket';
 import { toast } from 'sonner';
+import { useAuth } from '../contexts/AuthContext';
 
-const StatCard = ({ title, value, change, changeType, icon: Icon, color, loading }) => {
+const StatCard = ({ title, value, subValue, change, changeType, icon: Icon, color, loading }) => {
   const colors = {
     red: 'bg-red-50 text-red-600',
     blue: 'bg-blue-50 text-blue-600',
     green: 'bg-green-50 text-green-600',
     purple: 'bg-purple-50 text-purple-600',
     orange: 'bg-orange-50 text-orange-600',
+    amber: 'bg-amber-50 text-amber-600',
   };
 
   return (
@@ -53,7 +57,10 @@ const StatCard = ({ title, value, change, changeType, icon: Icon, color, loading
       {loading ? (
         <div className="h-8 w-24 bg-gray-200 animate-pulse rounded"></div>
       ) : (
-        <h3 className="text-2xl font-bold text-gray-800">{value}</h3>
+        <>
+          <h3 className="text-2xl font-bold text-gray-800">{value}</h3>
+          {subValue && <p className="text-sm text-gray-400 mt-0.5">{subValue}</p>}
+        </>
       )}
       <p className="text-gray-500 text-sm mt-1">{title}</p>
     </div>
@@ -61,6 +68,7 @@ const StatCard = ({ title, value, change, changeType, icon: Icon, color, loading
 };
 
 const DashboardPage = () => {
+  const { user } = useAuth();
   const [stats, setStats] = useState({
     todayRevenue: 0,
     todayOrders: 0,
@@ -102,16 +110,21 @@ const DashboardPage = () => {
     loadDashboardData();
     
     // Connect WebSocket
+    console.log('🔌 Attempting to connect socket...');
     connectSocket();
     
     const onConnect = () => {
       setIsConnected(true);
-      console.log('🔌 Socket connected');
+      console.log('🔌 Socket connected, id:', socket.id);
     };
     
     const onDisconnect = () => {
       setIsConnected(false);
       console.log('❌ Socket disconnected');
+    };
+
+    const onConnectError = (error) => {
+      console.error('❌ Socket connection error:', error.message);
     };
     
     const onOrderPaid = (data) => {
@@ -123,15 +136,25 @@ const DashboardPage = () => {
       // Reload dashboard data
       loadDashboardData(true);
     };
+
+    const onStatsUpdated = (data) => {
+      console.log('📊 Stats updated:', data);
+      // Reload dashboard data silently
+      loadDashboardData(true);
+    };
     
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onConnectError);
     socket.on(SOCKET_EVENTS.ORDER_PAID, onOrderPaid);
+    socket.on(SOCKET_EVENTS.STATS_UPDATED, onStatsUpdated);
 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
+      socket.off('connect_error', onConnectError);
       socket.off(SOCKET_EVENTS.ORDER_PAID, onOrderPaid);
+      socket.off(SOCKET_EVENTS.STATS_UPDATED, onStatsUpdated);
       disconnectSocket();
     };
   }, [loadDashboardData]);
@@ -179,7 +202,12 @@ const DashboardPage = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-          <p className="text-gray-500">Tổng quan hoạt động hôm nay</p>
+          <p className="text-gray-500">
+            {user?.role === 'manager' 
+              ? `Tổng quan hoạt động - ${user?.managedTheaters?.map(t => t.name).join(', ') || 'Các rạp được quản lý'}`
+              : 'Tổng quan hoạt động hôm nay'
+            }
+          </p>
         </div>
         <div className="flex items-center gap-3">
           {/* Realtime indicator */}
@@ -192,8 +220,25 @@ const DashboardPage = () => {
         </div>
       </div>
 
+      {/* Manager theater info banner */}
+      {user?.role === 'manager' && user?.managedTheaters?.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <Building2 className="text-blue-600" size={20} />
+            <div>
+              <p className="text-sm font-medium text-blue-800">
+                Bạn đang quản lý {user.managedTheaters.length} rạp
+              </p>
+              <p className="text-xs text-blue-600">
+                {user.managedTheaters.map(t => t.name).join(' • ')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         <StatCard
           title="Doanh thu hôm nay"
           value={formatCurrency(stats.todayRevenue)}
@@ -203,20 +248,27 @@ const DashboardPage = () => {
           color="green"
         />
         <StatCard
+          title="Doanh thu đặt vé"
+          value={formatCurrency(stats.todayOrderRevenue || 0)}
+          icon={Ticket}
+          color="blue"
+        />
+        <StatCard
+          title="Doanh thu đặt nhóm"
+          value={formatCurrency(stats.todayGroupRevenue || 0)}
+          subValue={stats.todayGroupBookings ? `${stats.todayGroupBookings} đơn` : null}
+          icon={UsersRound}
+          color="amber"
+        />
+        <StatCard
           title="Đơn hàng hôm nay"
           value={stats.todayOrders}
           icon={ShoppingCart}
-          color="blue"
+          color="purple"
         />
         <StatCard
           title="Vé đã bán"
           value={stats.todayTickets}
-          icon={Ticket}
-          color="purple"
-        />
-        <StatCard
-          title="Phim đang chiếu"
-          value={stats.totalMoviesShowing}
           icon={Film}
           color="red"
         />

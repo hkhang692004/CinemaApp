@@ -87,6 +87,14 @@ Ticket.belongsTo(Showtime, { foreignKey: 'showtime_id' });
 Seat.hasMany(Ticket, { foreignKey: 'seat_id' });
 Ticket.belongsTo(Seat, { foreignKey: 'seat_id' });
 
+// Seat - SeatReservation
+Seat.hasMany(SeatReservation, { foreignKey: 'seat_id' });
+SeatReservation.belongsTo(Seat, { foreignKey: 'seat_id' });
+
+// Showtime - SeatReservation
+Showtime.hasMany(SeatReservation, { foreignKey: 'showtime_id' });
+SeatReservation.belongsTo(Showtime, { foreignKey: 'showtime_id' });
+
 // Order - ComboOrder
 Order.hasMany(ComboOrder, { foreignKey: 'order_id' });
 ComboOrder.belongsTo(Order, { foreignKey: 'order_id' });
@@ -112,6 +120,8 @@ GroupBooking.belongsTo(Theater, { foreignKey: 'theater_id' });
 Theater.hasMany(GroupBooking, { foreignKey: 'theater_id' });
 GroupBooking.belongsTo(User, { foreignKey: 'user_id' });
 User.hasMany(GroupBooking, { foreignKey: 'user_id' });
+GroupBooking.belongsTo(Showtime, { foreignKey: 'assigned_showtime_id' });
+Showtime.hasMany(GroupBooking, { foreignKey: 'assigned_showtime_id' });
 
 // User (Manager) - Theater (Many-to-Many through ManagerTheater)
 User.belongsToMany(Theater, { 

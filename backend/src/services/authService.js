@@ -90,6 +90,21 @@ export const authService = {
     const Role = (await import('../models/Role.js')).default;
     const role = await Role.findByPk(user.role_id);
 
+    // Get managed theaters if manager
+    let managedTheaters = [];
+    if (role?.name === 'manager') {
+      const ManagerTheater = (await import('../models/ManagerTheater.js')).default;
+      const Theater = (await import('../models/Theater.js')).default;
+      const assignments = await ManagerTheater.findAll({
+        where: { user_id: user.id },
+        include: [{
+          model: Theater,
+          attributes: ['id', 'name', 'address']
+        }]
+      });
+      managedTheaters = assignments.map(a => a.Theater).filter(t => t);
+    }
+
     return { 
       accessToken, 
       refreshToken,
@@ -97,8 +112,12 @@ export const authService = {
         id: user.id,
         email: user.email,
         full_name: user.full_name,
+        phone: user.phone,
         avatar_url: user.avatar_url,
-        role: role?.name || 'user'
+        date_of_birth: user.date_of_birth,
+        role: role?.name || 'user',
+        created_at: user.created_at,
+        managedTheaters: managedTheaters
       }
     };
   },
@@ -180,12 +199,28 @@ export const authService = {
 
   async getMe(userId) {
     const user = await User.findByPk(userId, {
-      attributes: ['id', 'email', 'full_name', 'avatar_url', 'phone', 'role_id']
+      attributes: ['id', 'email', 'full_name', 'avatar_url', 'phone', 'role_id', 'date_of_birth', 'created_at']
     });
     if (!user) throw new Error("Người dùng không tồn tại");
 
     const Role = (await import('../models/Role.js')).default;
+    const ManagerTheater = (await import('../models/ManagerTheater.js')).default;
+    const Theater = (await import('../models/Theater.js')).default;
+    
     const role = await Role.findByPk(user.role_id);
+
+    // Nếu là manager, lấy danh sách theaters được gán
+    let managedTheaters = [];
+    if (role?.name === 'manager') {
+      const assignments = await ManagerTheater.findAll({
+        where: { user_id: userId },
+        include: [{
+          model: Theater,
+          attributes: ['id', 'name', 'address']
+        }]
+      });
+      managedTheaters = assignments.map(a => a.Theater).filter(t => t);
+    }
 
     return {
       id: user.id,
@@ -193,7 +228,10 @@ export const authService = {
       full_name: user.full_name,
       avatar_url: user.avatar_url,
       phone: user.phone,
-      role: role?.name || 'user'
+      date_of_birth: user.date_of_birth,
+      role: role?.name || 'user',
+      created_at: user.created_at,
+      managedTheaters: managedTheaters
     };
   },
 };

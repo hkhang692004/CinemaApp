@@ -51,6 +51,16 @@ class BookingProvider extends ChangeNotifier {
         .toList();
   }
 
+  // ✅ Getter để lấy theater đã chọn
+  TheaterModel? get selectedTheater {
+    if (selectedTheaterId == null) return null;
+    try {
+      return allTheaters.firstWhere((t) => t.id == selectedTheaterId);
+    } catch (e) {
+      return null;
+    }
+  }
+
   // ✅ Lọc thêm theo theater (nếu có)
   List<TheaterModel> get theatersToDisplay {
     var theaters = filteredTheaters;

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../providers/booking_provider.dart';
 import '../models/cinema_room_model.dart';
+import '../services/socket_service.dart';
 import 'seat_selection_screen.dart';
 
 class BookingScreen extends StatefulWidget {
@@ -23,11 +24,18 @@ class BookingScreen extends StatefulWidget {
 class _BookingScreenState extends State<BookingScreen> {
   late ScrollController _dateScrollController;
   final Set<int> _expandedTheaters = {}; // Track expanded theater IDs
+  
+  // Socket listener reference for cleanup
+  late void Function(int, String, String) _roomUpdatedListener;
+  late void Function(int, int?) _showtimeCreatedListener;
+  late void Function(int, int, int?) _showtimeUpdatedListener;
+  late void Function(int, int, int?) _showtimeDeletedListener;
 
   @override
   void initState() {
     super.initState();
     _dateScrollController = ScrollController();
+    _setupSocketListeners();
 
     // Load TẤT CẢ suất chiếu của phim này 1 lần duy nhất
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -39,7 +47,54 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   void dispose() {
     _dateScrollController.dispose();
+    // Remove socket listeners
+    SocketService.instance.removeRoomUpdatedListener(_roomUpdatedListener);
+    SocketService.instance.removeShowtimeCreatedListener(_showtimeCreatedListener);
+    SocketService.instance.removeShowtimeUpdatedListener(_showtimeUpdatedListener);
+    SocketService.instance.removeShowtimeDeletedListener(_showtimeDeletedListener);
     super.dispose();
+  }
+
+  void _setupSocketListeners() {
+    // Listen for room updates - auto refresh data
+    _roomUpdatedListener = (roomId, roomName, screenType) {
+      debugPrint('[BookingScreen] Room updated: $roomId - $screenType ($roomName)');
+      // Reload all showtimes to get updated room info
+      Provider.of<BookingProvider>(context, listen: false)
+          .loadAllShowtimes(widget.movieId);
+    };
+    SocketService.instance.addRoomUpdatedListener(_roomUpdatedListener);
+
+    // Listen for showtime created event
+    _showtimeCreatedListener = (movieId, theaterId) {
+      debugPrint('[BookingScreen] Showtime created for movie: $movieId');
+      // Only reload if this showtime is for current movie
+      if (movieId == widget.movieId) {
+        Provider.of<BookingProvider>(context, listen: false)
+            .loadAllShowtimes(widget.movieId);
+      }
+    };
+    SocketService.instance.addShowtimeCreatedListener(_showtimeCreatedListener);
+
+    // Listen for showtime updated event
+    _showtimeUpdatedListener = (showtimeId, movieId, theaterId) {
+      debugPrint('[BookingScreen] Showtime updated: $showtimeId for movie: $movieId');
+      if (movieId == widget.movieId) {
+        Provider.of<BookingProvider>(context, listen: false)
+            .loadAllShowtimes(widget.movieId);
+      }
+    };
+    SocketService.instance.addShowtimeUpdatedListener(_showtimeUpdatedListener);
+
+    // Listen for showtime deleted event
+    _showtimeDeletedListener = (showtimeId, movieId, theaterId) {
+      debugPrint('[BookingScreen] Showtime deleted: $showtimeId for movie: $movieId');
+      if (movieId == widget.movieId) {
+        Provider.of<BookingProvider>(context, listen: false)
+            .loadAllShowtimes(widget.movieId);
+      }
+    };
+    SocketService.instance.addShowtimeDeletedListener(_showtimeDeletedListener);
   }
 
   @override
@@ -206,7 +261,7 @@ class _BookingScreenState extends State<BookingScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Tất cả',
+                      provider.selectedTheater?.name ?? 'Tất cả',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -324,15 +379,24 @@ class _BookingScreenState extends State<BookingScreen> {
       children: theaters.map((theater) {
         final isExpanded = _expandedTheaters.contains(theater.id);
 
-        // Group rooms by screen_type
-        final screenTypeGroups = <String, List<CinemaRoomModel>>{};
+        // Group showtimes by "screenType - showtimeType"
+        // e.g., "Standard - 2D Phụ đề", "IMAX - 3D Phụ đề"
+        final showtimeGroups = <String, List<Map<String, dynamic>>>{};
         for (final room in (theater.cinemaRooms ?? [])) {
-          final screenType = room.screenType;
-          if (!screenTypeGroups.containsKey(screenType)) {
-            screenTypeGroups[screenType] = [];
+          for (final showtime in (room.showtimes ?? [])) {
+            final groupKey = '${room.screenType} - ${showtime.showtimeType}';
+            if (!showtimeGroups.containsKey(groupKey)) {
+              showtimeGroups[groupKey] = [];
+            }
+            showtimeGroups[groupKey]!.add({
+              'showtime': showtime,
+              'room': room,
+            });
           }
-          screenTypeGroups[screenType]!.add(room);
         }
+        
+        // Sort groups by key
+        final sortedGroupKeys = showtimeGroups.keys.toList()..sort();
 
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
@@ -409,38 +473,36 @@ class _BookingScreenState extends State<BookingScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: screenTypeGroups.entries
-                        .map((entry) {
-                          final screenType = entry.key;
-                          final rooms = entry.value;
+                    children: sortedGroupKeys
+                        .map((groupKey) {
+                          final items = showtimeGroups[groupKey]!;
 
-                          // Collect all showtimes from rooms with this screen type
-                          final allShowtimes = <ShowtimeModel>[];
-                          for (final room in rooms) {
-                            allShowtimes.addAll(room.showtimes ?? []);
-                          }
-
-                          // Filter future showtimes
-                          final futureShowtimes = allShowtimes
-                              .where((showtime) {
-                                final startTime =
-                                    showtime.startTime is DateTime
-                                        ? showtime.startTime
-                                        : DateTime.parse(
-                                            showtime.startTime
-                                                .toString());
-                                return startTime.isAfter(now);
+                          // Filter future showtimes and sort by time
+                          final futureItems = items
+                              .where((item) {
+                                final showtime = item['showtime'] as ShowtimeModel;
+                                return showtime.startTime.isAfter(now);
                               })
                               .toList();
+                          
+                          futureItems.sort((a, b) {
+                            final stA = a['showtime'] as ShowtimeModel;
+                            final stB = b['showtime'] as ShowtimeModel;
+                            return stA.startTime.compareTo(stB.startTime);
+                          });
+
+                          if (futureItems.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
 
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Screen Type Name
+                              // Group Name: "Standard - 2D Phụ đề"
                               Text(
-                                screenType,
-                                style: const TextStyle(
-                                  color: Colors.black87,
+                                groupKey,
+                                style: TextStyle(
+                                  color: _getScreenTypeColor(groupKey),
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -448,59 +510,38 @@ class _BookingScreenState extends State<BookingScreen> {
                               const SizedBox(height: 8),
 
                               // Showtimes Grid
-                              if (futureShowtimes.isEmpty)
-                                Text(
-                                  'Không có suất chiếu',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 11,
-                                  ),
-                                )
-                              else
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: futureShowtimes
-                                      .map((showtime) {
-                                    final timeStr =
-                                        DateFormat('HH:mm').format(
-                                      showtime.startTime is DateTime
-                                          ? showtime.startTime
-                                          : DateTime.parse(
-                                              showtime.startTime
-                                                  .toString()),
-                                    );
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: futureItems.map((item) {
+                                  final showtime = item['showtime'] as ShowtimeModel;
+                                  final timeStr = DateFormat('HH:mm').format(showtime.startTime);
+                                  final color = _getScreenTypeColor(groupKey);
 
-                                    return GestureDetector(
-                                      onTap: () =>
-                                          _selectShowtime(showtime),
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue
-                                              .withOpacity(0.1),
-                                          border: Border.all(
-                                              color: Colors.blue
-                                                  .withOpacity(0.5)),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        padding:
-                                            const EdgeInsets.symmetric(
-                                          vertical: 10,
-                                          horizontal: 14,
-                                        ),
-                                        child: Text(
-                                          timeStr,
-                                          style: const TextStyle(
-                                            color: Colors.blue,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                  return GestureDetector(
+                                    onTap: () => _selectShowtime(showtime),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        border: Border.all(color: const Color(0xFFD2D2D2)),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 10,
+                                        horizontal: 14,
+                                      ),
+                                      child: Text(
+                                        timeStr,
+                                        style: TextStyle(
+                                          color: color,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                    );
-                                  }).toList(),
-                                ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
                               const SizedBox(height: 16),
                             ],
                           );
@@ -514,6 +555,16 @@ class _BookingScreenState extends State<BookingScreen> {
         );
       }).toList(),
     );
+  }
+
+  IconData _getScreenTypeIcon(String groupKey) {
+    if (groupKey.contains('3D')) return Icons.threed_rotation;
+    return Icons.movie_outlined;
+  }
+
+  // Single color for all showtime types
+  Color _getScreenTypeColor(String groupKey) {
+    return Colors.black87;
   }
 
   // ============================================
@@ -730,7 +781,7 @@ class _BookingScreenState extends State<BookingScreen> {
         final hasShowtime = room.showtimes?.any((s) => s.id == showtime.id) ?? false;
         if (hasShowtime) {
           theaterName = theater.name;
-          roomName = room.name;
+          roomName = room.displayName;
           break;
         }
       }

@@ -3,19 +3,33 @@ import 'dart:async';
 import '../models/cinema_room_model.dart';
 import '../services/showtime_service.dart';
 import '../services/reservation_service.dart';
+import '../services/socket_service.dart';
 import 'auth_provider.dart';
 
 class SeatSelectionProvider with ChangeNotifier {
-  final AuthProvider authProvider;
-  late final ShowtimeService _showtimeService;
-  late final ReservationService _reservationService;
+  AuthProvider _authProvider;
+  late ShowtimeService _showtimeService;
+  late ReservationService _reservationService;
   Timer? _countdownTimer;
   Function? _onExpired; // Callback khi hết giờ
 
-  SeatSelectionProvider(this.authProvider) {
-    _showtimeService = ShowtimeService(authProvider);
-    _reservationService = ReservationService(authProvider);
+  SeatSelectionProvider(this._authProvider) {
+    _showtimeService = ShowtimeService(_authProvider);
+    _reservationService = ReservationService(_authProvider);
+    _setupSocketListeners();
   }
+
+  // Update auth provider without recreating instance
+  void updateAuthProvider(AuthProvider newAuthProvider) {
+    print('🟢 SeatSelectionProvider.updateAuthProvider called - keeping existing instance');
+    print('🟢 Current state: selectedSeats=${_selectedSeatIds.length}, remainingTime=$_remainingTime');
+    _authProvider = newAuthProvider;
+    _showtimeService = ShowtimeService(_authProvider);
+    _reservationService = ReservationService(_authProvider);
+    // Don't call notifyListeners() to avoid rebuild
+  }
+
+  AuthProvider get authProvider => _authProvider;
 
   List<SeatModel> _allSeats = [];
   final Set<int> _selectedSeatIds = {};
@@ -85,6 +99,16 @@ class SeatSelectionProvider with ChangeNotifier {
         });
     }
     return result;
+  }
+
+  // Tìm số cột lớn nhất để tất cả hàng align đúng
+  int get maxSeatNumberInAllRows {
+    int maxNum = 0;
+    for (final seat in _allSeats) {
+      final num = int.tryParse(seat.seatNumber.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      if (num > maxNum) maxNum = num;
+    }
+    return maxNum;
   }
 
   double get totalPrice {
@@ -316,9 +340,86 @@ class SeatSelectionProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // Setup socket listeners for realtime seat updates
+  void _setupSocketListeners() {
+    final socketService = SocketService.instance;
+    
+    socketService.addSeatHeldListener(_onSeatHeld);
+    socketService.addSeatReleasedListener(_onSeatReleased);
+  }
+
+  // Handle seat held event from other users
+  void _onSeatHeld(int showtimeId, List<int> seatIds, int heldByUserId) {
+    // Chỉ xử lý nếu đang xem cùng showtime
+    if (showtimeId != _currentShowtimeId) return;
+    
+    // Bỏ qua event của chính mình
+    final currentUserId = _authProvider.user?.id;
+    debugPrint('🪑 _onSeatHeld: currentUserId=$currentUserId, heldByUserId=$heldByUserId');
+    
+    if (currentUserId != null && heldByUserId == currentUserId) {
+      debugPrint('🪑 Ignoring own seat held event: $seatIds');
+      return;
+    }
+    
+    // Nếu ghế đang được chọn bởi user hiện tại, bỏ qua 
+    // (đây là event của chính mình nhưng currentUserId chưa load)
+    final isOwnSeats = seatIds.every((id) => _selectedSeatIds.contains(id));
+    if (isOwnSeats && seatIds.isNotEmpty) {
+      debugPrint('🪑 Ignoring seat held event for own selected seats: $seatIds');
+      return;
+    }
+    
+    debugPrint('🪑 Seats held by other user: $seatIds for showtime $showtimeId (by userId: $heldByUserId)');
+    
+    // Update seat status to unavailable
+    for (final seat in _allSeats) {
+      if (seatIds.contains(seat.id)) {
+        seat.status = 'Booked';
+      }
+    }
+    
+    // Remove from selected if user had selected these seats (only partial overlap = other user)
+    _selectedSeatIds.removeWhere((id) => seatIds.contains(id));
+    
+    notifyListeners();
+  }
+
+  // Handle seat released event from other users
+  void _onSeatReleased(int showtimeId, List<int> seatIds, int releasedByUserId) {
+    // Chỉ xử lý nếu đang xem cùng showtime
+    if (showtimeId != _currentShowtimeId) return;
+    
+    // Bỏ qua event của chính mình
+    final currentUserId = _authProvider.user?.id;
+    if (currentUserId != null && releasedByUserId == currentUserId) {
+      debugPrint('🪑 Ignoring own seat released event: $seatIds');
+      return;
+    }
+    
+    debugPrint('🪑 Seats released by other user: $seatIds for showtime $showtimeId (by userId: $releasedByUserId)');
+    
+    // Update seat status to available
+    for (final seat in _allSeats) {
+      if (seatIds.contains(seat.id)) {
+        seat.status = 'Available';
+      }
+    }
+    
+    notifyListeners();
+  }
+
+  // Remove socket listeners
+  void _removeSocketListeners() {
+    final socketService = SocketService.instance;
+    socketService.removeSeatHeldListener(_onSeatHeld);
+    socketService.removeSeatReleasedListener(_onSeatReleased);
+  }
+
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _removeSocketListeners();
     super.dispose();
   }
 }

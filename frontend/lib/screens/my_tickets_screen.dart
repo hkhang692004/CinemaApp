@@ -260,7 +260,10 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
     final movieTitle = movie?['title'] ?? 'Không rõ phim';
     final posterUrl = movie?['poster_url'];
     final theaterName = theater?['name'] ?? 'Không rõ rạp';
-    final roomName = room?['name'] ?? '';
+    // Display name format: "IMAX (Phòng 5)"
+    final screenType = room?['screen_type'] ?? 'Standard';
+    final roomNameRaw = room?['name'] ?? '';
+    final roomName = roomNameRaw.isNotEmpty ? '$screenType ($roomNameRaw)' : '';
     final status = ticket['status'] ?? 'Paid';
     final orderCode = ticket['order_code'] ?? '';
     final ticketCount = ticket['ticket_count'] ?? seats.length;

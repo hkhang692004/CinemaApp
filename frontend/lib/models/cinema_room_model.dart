@@ -17,6 +17,11 @@ class CinemaRoomModel {
     this.showtimes,
   });
 
+  /// Display name with format: "IMAX (Phòng 5)" or "Standard (Phòng 1)"
+  String get displayName {
+    return '$screenType ($name)';
+  }
+
   factory CinemaRoomModel.fromJson(Map<String, dynamic> json) {
     // Accept either 'Showtimes' (Sequelize include alias) or 'showtimes'
     final rawShowtimes = json['Showtimes'] ?? json['showtimes'];
@@ -42,6 +47,7 @@ class ShowtimeModel {
   final DateTime startTime;
   final DateTime endTime;
   final double basePrice;
+  final String showtimeType; // 2D Phụ đề, 3D Phụ đề, etc.
   final String status;
 
   ShowtimeModel({
@@ -51,6 +57,7 @@ class ShowtimeModel {
     required this.startTime,
     required this.endTime,
     required this.basePrice,
+    required this.showtimeType,
     required this.status,
   });
 
@@ -88,6 +95,7 @@ class ShowtimeModel {
       startTime: parseToLocal(json['start_time']?.toString()),
       endTime: parseToLocal(json['end_time']?.toString()),
       basePrice: parseBasePrice(json['base_price']),
+      showtimeType: json['showtime_type'] ?? '2D Phụ đề Việt',
       status: json['status'] ?? 'Scheduled',
     );
   }
@@ -101,7 +109,7 @@ class SeatModel {
   final String seatType;
   final bool isActive;
   final bool reserved;
-  final String status; // 'Available' or 'Booked'
+  String status; // 'Available', 'Booked', 'Held' - mutable for realtime updates
   final double price; // Giá từ server (đã tính theo seat_type)
 
   SeatModel({

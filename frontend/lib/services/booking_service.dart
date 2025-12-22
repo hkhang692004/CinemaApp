@@ -14,10 +14,11 @@ class BookingService {
     this.authProvider = authProvider ?? AuthProvider();
   }
 
-  /// Lấy danh sách tất cả rạp
+  /// Lấy danh sách tất cả rạp (đang hoạt động)
   Future<List<TheaterModel>> getTheaters() async {
     try {
-      final url=Uri.parse("${ApiConfig.baseURL}${ApiConfig.theaters}");
+      // Thêm query param active=true để chỉ lấy rạp đang hoạt động
+      final url=Uri.parse("${ApiConfig.baseURL}${ApiConfig.theaters}?active=true");
       final response = await httpHelper(
             () => http.get(
           url,

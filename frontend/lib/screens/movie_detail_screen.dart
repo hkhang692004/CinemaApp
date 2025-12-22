@@ -5,7 +5,9 @@ import 'package:cinema_app/providers/movie_provider.dart';
 import 'package:cinema_app/screens/booking_screen.dart';
 import 'package:cinema_app/utils/snackbar_helper.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class MovieDetailScreen extends StatefulWidget {
@@ -38,6 +40,13 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
         _scrollOffset = _scrollController.offset;
       });
     });
+    
+    // Listen to provider changes for realtime updates
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final movieProvider = context.read<MovieProvider>();
+      movieProvider.addListener(_onProviderChanged);
+    });
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadDetail();
       // Hiển thị loading overlay 1s để ảnh load vào cache
@@ -81,8 +90,34 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     }
   }
 
+  /// Callback khi provider thay đổi (realtime update từ WebSocket)
+  void _onProviderChanged() {
+    if (!mounted) return;
+    final movieProvider = context.read<MovieProvider>();
+    final selectedMovie = movieProvider.selectedMovie;
+    
+    // Nếu selectedMovie được update và có cùng id với movie đang xem
+    if (selectedMovie != null && selectedMovie.id == _movie.id) {
+      // Lưu trailer cũ để check sau
+      final oldTrailerUrl = _movie.trailerUrl;
+      
+      debugPrint('📽️ Movie detail updated via WebSocket');
+      setState(() {
+        _movie = selectedMovie;
+      });
+      
+      // Re-init YouTube controller nếu trailer thay đổi
+      if (selectedMovie.trailerUrl != oldTrailerUrl) {
+        _initYoutubeController(selectedMovie.trailerUrl);
+      }
+    }
+  }
+
   @override
   void dispose() {
+    // Remove listener khi dispose
+    final movieProvider = context.read<MovieProvider>();
+    movieProvider.removeListener(_onProviderChanged);
     _youtubeController?.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -194,9 +229,31 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                     SizedBox(height: overlayHeight / 2),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        movie.description ?? 'Đang cập nhật nội dung...',
-                        style: const TextStyle(fontSize: 14, height: 1.4),
+                      child: Html(
+                        data: movie.description ?? '<p>Đang cập nhật nội dung...</p>',
+                        style: {
+                          "body": Style(
+                            fontSize: FontSize(14),
+                            lineHeight: LineHeight(1.4),
+                            margin: Margins.zero,
+                            padding: HtmlPaddings.zero,
+                          ),
+                          "p": Style(
+                            margin: Margins.only(bottom: 8),
+                          ),
+                          "a": Style(
+                            color: const Color(0xFFE53935),
+                            textDecoration: TextDecoration.underline,
+                          ),
+                        },
+                        onLinkTap: (url, _, __) async {
+                          if (url != null) {
+                            final uri = Uri.parse(url);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            }
+                          }
+                        },
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -204,6 +261,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                     _infoRow('Thể loại', movie.genres.isNotEmpty ? movie.genres.join(', ') : 'Đang cập nhật'),
                     _infoRow('Đạo diễn', movie.director ?? 'Đang cập nhật'),
                     _infoRow('Diễn viên', movie.actors.isNotEmpty ? movie.actors.join(', ') : 'Đang cập nhật'),
+                    _infoRow('Quốc gia', movie.country ?? 'Đang cập nhật'),
                     const SizedBox(height: 20),
                     // Show booking button only if movie is now showing
                     if (movie.status == 'now_showing')

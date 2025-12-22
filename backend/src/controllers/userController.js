@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import User from '../models/User.js';
+import Role from '../models/Role.js';
 import LoyaltyAccount from '../models/LoyaltyAccount.js';
 import LoyaltyTierRequirement from '../models/LoyaltyTierRequirement.js';
 import { uploadImage } from '../libs/cloudinary.js';
@@ -8,7 +9,21 @@ export const authMe = async (req, res) => {
     try {
         const user = req.user;
 
-        return res.status(200).json({ user })
+        // Lấy role name
+        const role = await Role.findByPk(user.role_id);
+
+        return res.status(200).json({ 
+            user: {
+                id: user.id,
+                email: user.email,
+                full_name: user.full_name,
+                phone: user.phone,
+                avatar_url: user.avatar_url,
+                date_of_birth: user.date_of_birth,
+                role: role?.name || 'user',
+                created_at: user.created_at
+            }
+        });
     } catch (error) {
         console.error("lỗi từ authMe", error);
         return res.status(500).json({ message: "Lỗi hệ thống" });
@@ -127,6 +142,95 @@ export const updateAvatar = async (req, res) => {
         });
     } catch (error) {
         console.error("lỗi từ updateAvatar", error);
+        return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};
+
+/**
+ * Cập nhật thông tin profile
+ */
+export const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { fullName, phone, dateOfBirth } = req.body;
+        
+        // Validate fullName
+        if (!fullName || typeof fullName !== 'string') {
+            return res.status(400).json({ message: 'Họ tên là bắt buộc' });
+        }
+        
+        const trimmedName = fullName.trim();
+        if (trimmedName.length < 2) {
+            return res.status(400).json({ message: 'Họ tên phải có ít nhất 2 ký tự' });
+        }
+        
+        if (trimmedName.length > 100) {
+            return res.status(400).json({ message: 'Họ tên không được quá 100 ký tự' });
+        }
+        
+        // Validate phone (optional)
+        if (phone !== null && phone !== undefined && phone !== '') {
+            const phoneStr = String(phone).trim();
+            if (!/^[0-9]{10,11}$/.test(phoneStr)) {
+                return res.status(400).json({ message: 'Số điện thoại phải có 10-11 chữ số' });
+            }
+        }
+        
+        // Validate dateOfBirth (optional)
+        if (dateOfBirth !== null && dateOfBirth !== undefined && dateOfBirth !== '') {
+            const dob = new Date(dateOfBirth);
+            if (isNaN(dob.getTime())) {
+                return res.status(400).json({ message: 'Ngày sinh không hợp lệ' });
+            }
+            
+            const now = new Date();
+            const minAge = new Date(now.getFullYear() - 100, now.getMonth(), now.getDate());
+            const maxAge = new Date(now.getFullYear() - 10, now.getMonth(), now.getDate());
+            
+            if (dob < minAge || dob > maxAge) {
+                return res.status(400).json({ message: 'Ngày sinh phải từ 10 đến 100 tuổi' });
+            }
+        }
+        
+        // Cập nhật user
+        const updateData = {
+            full_name: trimmedName,
+            updated_at: new Date()
+        };
+        
+        if (phone !== undefined) {
+            updateData.phone = phone ? String(phone).trim() : null;
+        }
+        
+        if (dateOfBirth !== undefined) {
+            updateData.date_of_birth = dateOfBirth || null;
+        }
+        
+        await User.update(updateData, { where: { id: userId } });
+        
+        // Lấy user mới để trả về (include Role để lấy role name)
+        const updatedUser = await User.findByPk(userId, {
+            attributes: ['id', 'email', 'full_name', 'phone', 'avatar_url', 'date_of_birth', 'role_id'],
+            include: [{
+                model: Role,
+                attributes: ['name']
+            }]
+        });
+        
+        return res.status(200).json({
+            message: 'Cập nhật thông tin thành công',
+            user: {
+                id: updatedUser.id,
+                email: updatedUser.email,
+                full_name: updatedUser.full_name,
+                phone: updatedUser.phone,
+                avatar_url: updatedUser.avatar_url,
+                date_of_birth: updatedUser.date_of_birth,
+                role: updatedUser.Role?.name || 'user'
+            }
+        });
+    } catch (error) {
+        console.error("lỗi từ updateProfile", error);
         return res.status(500).json({ message: "Lỗi hệ thống" });
     }
 };

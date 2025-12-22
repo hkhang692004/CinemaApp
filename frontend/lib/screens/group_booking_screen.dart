@@ -278,9 +278,9 @@ class _GroupBookingScreenState extends State<GroupBookingScreen> {
   Future<void> _submitBooking() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Validate minimum 20 guests
+    // Validate minimum 20 guests (not required for voucher)
     final guestCount = int.tryParse(_guestCountController.text) ?? 0;
-    if (guestCount < 20) {
+    if (_serviceType != 'voucher' && guestCount < 20) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Dịch vụ này yêu cầu tối thiểu 20 khách'),
@@ -309,10 +309,13 @@ class _GroupBookingScreenState extends State<GroupBookingScreen> {
             'address': _addressController.text,
             'companyName': _companyController.text,
             'serviceType': _serviceType,
-            'guestCount': int.tryParse(_guestCountController.text) ?? 0,
-            'preferredDate': _preferredDate?.toIso8601String().split('T')[0],
-            'region': _selectedRegion,
-            'theaterId': _selectedTheater?.id,
+            // Voucher không cần các thông tin này
+            if (_serviceType != 'voucher') ...{
+              'guestCount': int.tryParse(_guestCountController.text) ?? 0,
+              'preferredDate': _preferredDate?.toIso8601String().split('T')[0],
+              'region': _selectedRegion,
+              'theaterId': _selectedTheater?.id,
+            },
             'notes': _notesController.text,
           }),
         ),
@@ -346,79 +349,79 @@ class _GroupBookingScreenState extends State<GroupBookingScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green[50],
-                shape: BoxShape.circle,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Success icon
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.green.shade600,
+                  size: 48,
+                ),
               ),
-              child: Icon(Icons.check_circle, color: Colors.green[600], size: 64),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Gửi yêu cầu thành công!',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[700], fontSize: 14, height: 1.5),
-            ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 20),
+              
+              // Title
+              const Text(
+                'Gửi yêu cầu thành công!',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
               ),
-              child: Row(
-                children: [
-                  Icon(Icons.support_agent, color: Colors.blue[600], size: 32),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Chúng tôi sẽ liên hệ bạn',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[800]),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'trong vòng 24h làm việc',
-                          style: TextStyle(color: Colors.blue[700], fontSize: 13),
-                        ),
-                      ],
+              const SizedBox(height: 12),
+              
+              // Message
+              Text(
+                'Chúng tôi sẽ liên hệ với bạn trong vòng 24h làm việc để tư vấn và báo giá.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE53935),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                ],
+                  child: const Text(
+                    'Đóng',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE53935),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: const Text('Đóng', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -524,54 +527,57 @@ class _GroupBookingScreenState extends State<GroupBookingScreen> {
                     const SizedBox(height: 12),
                     _buildServiceTypeSelector(),
 
-                    const SizedBox(height: 24),
+                    // Voucher không cần các thông tin dưới đây
+                    if (_serviceType != 'voucher') ...[
+                      const SizedBox(height: 24),
 
-                    // Guest Count
-                    _buildTextField(
-                      controller: _guestCountController,
-                      label: 'Số lượng khách dự kiến *',
-                      hint: 'VD: 50',
-                      icon: Icons.people_outline,
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) return 'Vui lòng nhập số lượng khách';
-                        final count = int.tryParse(value);
-                        if (count == null || count <= 0) return 'Số lượng không hợp lệ';
-                        return null;
-                      },
-                    ),
+                      // Guest Count
+                      _buildTextField(
+                        controller: _guestCountController,
+                        label: 'Số lượng khách dự kiến *',
+                        hint: 'VD: 50',
+                        icon: Icons.people_outline,
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return 'Vui lòng nhập số lượng khách';
+                          final count = int.tryParse(value);
+                          if (count == null || count <= 0) return 'Số lượng không hợp lệ';
+                          return null;
+                        },
+                      ),
 
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // Preferred Date
-                    _buildDatePicker(),
+                      // Preferred Date
+                      _buildDatePicker(),
 
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    // Location Section
-                    _buildSectionTitle('Địa điểm mong muốn'),
-                    const SizedBox(height: 12),
+                      // Location Section
+                      _buildSectionTitle('Địa điểm mong muốn'),
+                      const SizedBox(height: 12),
 
-                    // Region Picker
-                    _buildPickerButton(
-                      label: 'Khu vực',
-                      value: _selectedRegion,
-                      placeholder: 'Chọn khu vực',
-                      icon: Icons.map_outlined,
-                      onTap: _showRegionPicker,
-                    ),
+                      // Region Picker
+                      _buildPickerButton(
+                        label: 'Khu vực',
+                        value: _selectedRegion,
+                        placeholder: 'Chọn khu vực',
+                        icon: Icons.map_outlined,
+                        onTap: _showRegionPicker,
+                      ),
 
-                    const SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
-                    // Theater Picker
-                    _buildPickerButton(
-                      label: 'Rạp chiếu phim',
-                      value: _selectedTheater?.name,
-                      placeholder: 'Chọn rạp (không bắt buộc)',
-                      icon: Icons.theaters_outlined,
-                      onTap: _showTheaterPicker,
-                      enabled: _selectedRegion != null,
-                    ),
+                      // Theater Picker
+                      _buildPickerButton(
+                        label: 'Rạp chiếu phim',
+                        value: _selectedTheater?.name,
+                        placeholder: 'Chọn rạp (không bắt buộc)',
+                        icon: Icons.theaters_outlined,
+                        onTap: _showTheaterPicker,
+                        enabled: _selectedRegion != null,
+                      ),
+                    ],
 
                     const SizedBox(height: 24),
 

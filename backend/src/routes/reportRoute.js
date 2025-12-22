@@ -5,7 +5,8 @@ import {
   getTheaterReport,
   getMovieReport,
   getMonthlyComparison,
-  triggerAggregation
+  triggerAggregation,
+  exportReport
 } from '../controllers/reportController.js';
 
 const router = express.Router();
@@ -15,6 +16,9 @@ router.get('/overview', adminOrManager, getOverviewReport);
 router.get('/theaters', adminOrManager, getTheaterReport);
 router.get('/movies', adminOrManager, getMovieReport);
 router.get('/monthly', adminOrManager, getMonthlyComparison);
+
+// Export báo cáo
+router.get('/export', adminOrManager, exportReport);
 
 // Chỉ admin mới được trigger aggregation thủ công
 router.post('/aggregate', adminOnly, triggerAggregation);

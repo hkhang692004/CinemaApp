@@ -184,22 +184,12 @@ const initYearlyResetJob = () => {
   console.log('✅ Yearly reset cron job initialized (runs at 00:01 on Jan 1st)');
 };
 
-/**
- * Cron job tổng hợp daily statistics
- * Chạy lúc 23:55 mỗi ngày
- * Tính toán và lưu thống kê doanh thu, vé, khách hàng theo ngày
- */
-const initDailyStatsJob = () => {
-  // Chạy lúc 23:55 mỗi ngày
-  cron.schedule('55 23 * * *', async () => {
-    await aggregateDailyStats();
-  });
-
-  console.log('✅ Daily statistics cron job initialized (runs daily at 23:55)');
-};
+// Daily stats cronjob đã được thay thế bằng realtime update trong paymentService
+// Giữ lại function aggregateDailyStats để có thể reconcile data nếu cần
 
 /**
- * Function tổng hợp thống kê - có thể gọi thủ công
+ * Function tổng hợp thống kê - dùng để reconcile/fix data nếu cần
+ * Không còn chạy tự động, chỉ gọi thủ công khi cần
  */
 const aggregateDailyStats = async (targetDate = null) => {
   try {
@@ -311,5 +301,5 @@ const aggregateDailyStats = async (targetDate = null) => {
   }
 };
 
-export { initShowtimeStatusJob, initReservationExpiryJob, initTokenCleanupJob, initOrderExpiryJob, initYearlyResetJob, initDailyStatsJob, aggregateDailyStats };
+export { initShowtimeStatusJob, initReservationExpiryJob, initTokenCleanupJob, initOrderExpiryJob, initYearlyResetJob, aggregateDailyStats };
 export default initShowtimeStatusJob;

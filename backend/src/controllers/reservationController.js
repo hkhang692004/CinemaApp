@@ -1,4 +1,5 @@
 import { reservationService } from "../services/reservationService.js";
+import { emitToAll, SOCKET_EVENTS } from "../socket.js";
 
 // Tạo reservation (giữ ghế tạm thời)
 export const createReservation = async (req, res) => {
@@ -15,6 +16,14 @@ export const createReservation = async (req, res) => {
         // Tính số giây còn lại từ thời điểm hiện tại
         const now = new Date();
         const durationSeconds = Math.floor((result.expiresAt.getTime() - now.getTime()) / 1000);
+        
+        // Emit socket event cho tất cả client đang xem suất chiếu này
+        emitToAll(SOCKET_EVENTS.SEAT_HELD, {
+            showtimeId: parseInt(showtimeId),
+            seatIds: seatIds,
+            userId: userId,
+            expiresAt: result.expiresAt
+        });
         
         return res.status(201).json({
             message: "Giữ ghế thành công",
@@ -39,6 +48,13 @@ export const releaseReservation = async (req, res) => {
         }
 
         await reservationService.releaseReservations(showtimeId, seatIds, userId);
+        
+        // Emit socket event cho tất cả client
+        emitToAll(SOCKET_EVENTS.SEAT_RELEASED, {
+            showtimeId: parseInt(showtimeId),
+            seatIds: seatIds,
+            userId: userId
+        });
         
         return res.status(200).json({ message: "Hủy giữ ghế thành công" });
     } catch (error) {

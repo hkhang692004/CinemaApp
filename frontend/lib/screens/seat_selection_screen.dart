@@ -352,26 +352,23 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     
     List<Widget> widgets = [];
     
-    for (int i = 0; i < seats.length; i++) {
-      final seat = seats[i];
-      
-      // Add seat
-      widgets.add(_buildSeatItem(seat, provider));
-      
-      // Check gap with next seat
-      if (i < seats.length - 1) {
-        final currentNum = int.tryParse(seat.seatNumber.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-        final nextNum = int.tryParse(seats[i + 1].seatNumber.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-        
-        // Calculate gap (số ghế thiếu)
-        final gap = nextNum - currentNum - 1;
-        
-        // If gap > 0, add empty seat placeholders
-        if (gap > 0) {
-          for (int j = 0; j < gap; j++) {
-            widgets.add(_buildEmptySeat());
-          }
-        }
+    // Lấy số cột lớn nhất để align tất cả các hàng
+    final maxSeatNum = provider.maxSeatNumberInAllRows;
+    
+    // Tạo map seat number -> seat
+    final seatMap = <int, SeatModel>{};
+    for (final seat in seats) {
+      final num = int.tryParse(seat.seatNumber.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      seatMap[num] = seat;
+    }
+    
+    // Build từ 1 đến maxSeatNum để tất cả hàng có cùng số cột
+    for (int i = 1; i <= maxSeatNum; i++) {
+      if (seatMap.containsKey(i)) {
+        widgets.add(_buildSeatItem(seatMap[i]!, provider));
+      } else {
+        // Ghế bị xóa hoặc không tồn tại - thêm ô trống
+        widgets.add(_buildEmptySeat());
       }
     }
     
