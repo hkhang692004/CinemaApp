@@ -8,7 +8,13 @@ host: process.env.DB_HOST,
 port: process.env.DB_PORT || 3306,
 dialect: 'mysql',
 logging: false,
-define: { freezeTableName: true } 
+define: { freezeTableName: true },
+dialectOptions: {
+  ssl: process.env.DB_HOST?.includes('tidbcloud.com') ? {
+    minVersion: 'TLSv1.2',
+    rejectUnauthorized: true
+  } : false
+}
 });
 
 
