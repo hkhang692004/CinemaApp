@@ -4,7 +4,7 @@ import '../providers/auth_provider.dart';
 import '../utils/http_helper.dart';
 
 class ReservationService {
-  final String baseUrl = 'http://10.0.2.2:5001/api/reservations';
+  final String baseUrl = 'https://cinemaapp-gkkn.onrender.com/api/reservations';
   final AuthProvider authProvider;
 
   ReservationService(this.authProvider);

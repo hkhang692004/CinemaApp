@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String baseURL = "http://10.0.2.2:5001/api";
+  static const String baseURL = "https://cinemaapp-gkkn.onrender.com/api";
 //Auth
   static const String signUp = "/auth/signup";
   static const String signIn = "/auth/signin";

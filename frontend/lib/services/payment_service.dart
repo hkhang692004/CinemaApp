@@ -5,7 +5,7 @@ import '../utils/http_helper.dart';
 import '../models/payment.dart';
 
 class PaymentService {
-  final String baseUrl = 'http://10.0.2.2:5001/api/payment';
+  final String baseUrl = 'https://cinemaapp-gkkn.onrender.com/api/payment';
   final AuthProvider authProvider;
 
   PaymentService(this.authProvider);

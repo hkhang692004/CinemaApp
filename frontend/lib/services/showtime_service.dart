@@ -5,7 +5,7 @@ import '../providers/auth_provider.dart';
 import '../utils/http_helper.dart';
 
 class ShowtimeService {
-  final String baseUrl = 'http://10.0.2.2:5001/api/showtimes';
+  final String baseUrl = 'https://cinemaapp-gkkn.onrender.com/api/showtimes';
   final AuthProvider authProvider;
 
   ShowtimeService(this.authProvider);

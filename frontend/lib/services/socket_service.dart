@@ -147,8 +147,8 @@ class SocketService {
       return;
     }
 
-    // URL của backend (cho Android emulator dùng 10.0.2.2)
-    const String socketUrl = 'http://10.0.2.2:5001';
+    // URL của backend production
+    const String socketUrl = 'https://cinemaapp-gkkn.onrender.com';
 
     _socket = io.io(
       socketUrl,
