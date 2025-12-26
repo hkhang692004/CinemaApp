@@ -33,7 +33,24 @@ const PORT = process.env.PORT || 5001;
 // Initialize Socket.io
 initSocket(server);
 
-app.use(cors({origin: process.env.CLIENT_URL, credentials: true}));
+// CORS config - allow multiple origins
+const allowedOrigins = [
+    process.env.CLIENT_URL,
+    'https://cinemaapp-gkkn.onrender.com',
+    'https://cinema-app-lovat-xi.vercel.app'
+].filter(Boolean);
+
+app.use(cors({
+    origin: function(origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, etc.)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin) || process.env.CLIENT_URL === '*') {
+            return callback(null, true);
+        }
+        return callback(null, true); // Allow all for now
+    },
+    credentials: true
+}));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));

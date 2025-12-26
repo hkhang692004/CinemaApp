@@ -639,6 +639,8 @@ function createVnpayPaymentUrl(orderId, amount, orderInfo, ipAddr) {
         cleanIp = '127.0.0.1';
     }
 
+    console.log('🔗 VNPAY_RETURN_URL:', VNPAY_CONFIG.vnp_ReturnUrl);
+    
     const paymentUrl = vnpay.buildPaymentUrl({
         vnp_Amount: amount,
         vnp_IpAddr: cleanIp,
