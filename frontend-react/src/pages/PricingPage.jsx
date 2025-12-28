@@ -327,9 +327,30 @@ const SeatTypesTab = ({ seatTypePrices, formatPrice }) => {
   };
 
   const handleSave = (seatType) => {
+    // Validate
+    const multiplier = parseFloat(editForm.price_multiplier);
+    const extraFee = parseInt(editForm.extra_fee) || 0;
+    
+    if (isNaN(multiplier) || multiplier <= 0) {
+      toast.error('Hệ số giá phải lớn hơn 0');
+      return;
+    }
+    if (multiplier > 10) {
+      toast.error('Hệ số giá không được vượt quá 10');
+      return;
+    }
+    if (extraFee < 0) {
+      toast.error('Phí thêm không được âm');
+      return;
+    }
+    
     updateMutation.mutate({
       seatType,
-      data: editForm
+      data: {
+        price_multiplier: multiplier,
+        extra_fee: extraFee,
+        description: editForm.description
+      }
     });
   };
 
@@ -372,10 +393,13 @@ const SeatTypesTab = ({ seatTypePrices, formatPrice }) => {
                 <td className="px-4 py-3">
                   {editingId === item.seat_type ? (
                     <input
-                      type="number"
-                      step="0.1"
+                      type="text"
+                      inputMode="decimal"
                       value={editForm.price_multiplier}
-                      onChange={(e) => setEditForm({ ...editForm, price_multiplier: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9.]/g, '');
+                        setEditForm({ ...editForm, price_multiplier: val });
+                      }}
                       className="w-24 px-2 py-1 border rounded focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
                     />
                   ) : (
@@ -385,9 +409,13 @@ const SeatTypesTab = ({ seatTypePrices, formatPrice }) => {
                 <td className="px-4 py-3">
                   {editingId === item.seat_type ? (
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={editForm.extra_fee}
-                      onChange={(e) => setEditForm({ ...editForm, extra_fee: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, '');
+                        setEditForm({ ...editForm, extra_fee: val === '' ? '' : parseInt(val, 10) });
+                      }}
                       className="w-28 px-2 py-1 border rounded focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
                     />
                   ) : (
@@ -533,13 +561,15 @@ const ScreenTypeModal = ({ screenType, onClose, onSave }) => {
               Giá cơ bản (VND) <span className="text-red-500">*</span>
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               value={form.base_price}
-              onChange={(e) => setForm({ ...form, base_price: parseInt(e.target.value) || 0 })}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^0-9]/g, '');
+                setForm({ ...form, base_price: val === '' ? '' : parseInt(val, 10) });
+              }}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
               placeholder="100000"
-              min="0"
-              step="1000"
               required
             />
           </div>

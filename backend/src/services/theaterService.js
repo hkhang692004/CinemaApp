@@ -552,6 +552,16 @@ export const theaterService = {
             }
         }
 
+        // Check if trying to disable and there are rooms using this screen type
+        if (data.is_active === false && screenType.is_active === true) {
+            const roomCount = await CinemaRoom.count({
+                where: { screen_type: screenType.screen_type }
+            });
+            if (roomCount > 0) {
+                throw new Error(`Không thể tắt vì có ${roomCount} phòng đang sử dụng loại màn hình này. Vui lòng đổi loại màn hình cho các phòng đó trước.`);
+            }
+        }
+
         await screenType.update({
             screen_type: data.screen_type?.trim() || screenType.screen_type,
             base_price: data.base_price !== undefined ? data.base_price : screenType.base_price,
