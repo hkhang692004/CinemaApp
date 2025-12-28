@@ -30,6 +30,7 @@ import DailyStatistic from './DailyStatistic.js';
 import Session from './Session.js';
 import TokenBlacklist from './TokenBlacklist.js';
 import SeatTypePrice from './SeatTypePrice.js';
+import ScreenTypePrice from './ScreenTypePrice.js';
 import ManagerTheater from './ManagerTheater.js';
 
 // --- Associations ---
@@ -177,5 +178,6 @@ export {
     Session,
     TokenBlacklist,
     SeatTypePrice,
+    ScreenTypePrice,
     ManagerTheater,
 };

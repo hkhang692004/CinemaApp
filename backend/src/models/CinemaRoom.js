@@ -8,7 +8,7 @@ CinemaRoom.init({
     theater_id: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
     name: { type: DataTypes.STRING(100) },
     seat_count: { type: DataTypes.INTEGER.UNSIGNED },
-    screen_type: { type: DataTypes.ENUM('Standard', 'IMAX', '4DX'), defaultValue: 'Standard' },
+    screen_type: { type: DataTypes.STRING(50), defaultValue: 'Standard' },
     is_active: { type: DataTypes.BOOLEAN, defaultValue: true }
 }, {
     sequelize,

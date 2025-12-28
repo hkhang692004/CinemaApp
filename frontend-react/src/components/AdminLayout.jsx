@@ -30,7 +30,7 @@ const allMenuItems = [
   { path: '/genres', icon: Tags, label: 'Thể loại Phim', roles: ['admin'] },
   { path: '/theaters', icon: Building2, label: 'Quản lý Rạp', roles: ['admin'] },
   { path: '/showtimes', icon: Calendar, label: 'Suất chiếu', roles: ['admin', 'manager'] },
-  { path: '/seat-prices', icon: Armchair, label: 'Giá ghế', roles: ['admin'] },
+  { path: '/pricing', icon: Armchair, label: 'Quản lý Giá vé', roles: ['admin'] },
   { path: '/orders', icon: ShoppingCart, label: 'Đơn hàng', roles: ['admin', 'manager'] },
   { path: '/group-bookings', icon: Users, label: 'Đặt vé nhóm', roles: ['admin', 'manager'] },
   { path: '/combos', icon: Popcorn, label: 'Combo', roles: ['admin'] },

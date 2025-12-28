@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Plus, 
@@ -774,6 +774,12 @@ const TheaterModal = ({ theater, onClose, onSave }) => {
 };
 
 // Room Modal
+// Fetch active screen types
+const fetchActiveScreenTypes = async () => {
+  const response = await api.get('/theaters/screen-types/active');
+  return response.data.screenTypes;
+};
+
 const RoomModal = ({ room, theaterId, onClose, onSave }) => {
   const [form, setForm] = useState({
     theater_id: room?.theater_id || theaterId,
@@ -782,6 +788,26 @@ const RoomModal = ({ room, theaterId, onClose, onSave }) => {
     is_active: room?.is_active !== undefined ? room.is_active : true,
   });
   const [loading, setLoading] = useState(false);
+  const [screenTypes, setScreenTypes] = useState([]);
+
+  // Load screen types on mount
+  useEffect(() => {
+    const loadScreenTypes = async () => {
+      try {
+        const types = await fetchActiveScreenTypes();
+        setScreenTypes(types);
+      } catch {
+        console.error('Error loading screen types');
+        // Fallback to default types if API fails
+        setScreenTypes([
+          { screen_type: 'Standard', base_price: 100000 },
+          { screen_type: 'IMAX', base_price: 150000 },
+          { screen_type: '4DX', base_price: 180000 }
+        ]);
+      }
+    };
+    loadScreenTypes();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -801,6 +827,10 @@ const RoomModal = ({ room, theaterId, onClose, onSave }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const formatPrice = (price) => {
+    return new Intl.NumberFormat('vi-VN').format(price) + 'đ';
   };
 
   return (
@@ -839,10 +869,15 @@ const RoomModal = ({ room, theaterId, onClose, onSave }) => {
               onChange={(e) => setForm({ ...form, screen_type: e.target.value })}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
             >
-              <option value="Standard">Standard</option>
-              <option value="IMAX">IMAX</option>
-              <option value="4DX">4DX</option>
+              {screenTypes.map((st) => (
+                <option key={st.screen_type} value={st.screen_type}>
+                  {st.screen_type} - {formatPrice(st.base_price)}
+                </option>
+              ))}
             </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Giá vé cơ bản sẽ được tự động áp dụng theo loại màn hình
+            </p>
           </div>
 
           <div className="flex items-center gap-2">

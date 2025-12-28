@@ -3,6 +3,7 @@ import { Theater } from "../models/Theater.js";
 import { CinemaRoom } from "../models/CinemaRoom.js";
 import { Seat } from "../models/Seat.js";
 import SeatTypePrice from "../models/SeatTypePrice.js";
+import ScreenTypePrice from "../models/ScreenTypePrice.js";
 import Showtime from "../models/Showtime.js";
 import Movie from "../models/Movie.js";
 import Ticket from "../models/Ticket.js";
@@ -481,6 +482,102 @@ export const theaterService = {
         });
 
         return price;
+    },
+
+    // ==================== SCREEN TYPE PRICES ====================
+    async getScreenTypePrices() {
+        return ScreenTypePrice.findAll({
+            order: [['screen_type', 'ASC']]
+        });
+    },
+
+    async getActiveScreenTypes() {
+        return ScreenTypePrice.findAll({
+            where: { is_active: true },
+            order: [['screen_type', 'ASC']]
+        });
+    },
+
+    async getScreenTypePriceById(id) {
+        return ScreenTypePrice.findByPk(id);
+    },
+
+    async getScreenTypePriceByType(screenType) {
+        return ScreenTypePrice.findOne({
+            where: { screen_type: screenType }
+        });
+    },
+
+    async createScreenTypePrice(data) {
+        // Validate
+        if (!data.screen_type || data.screen_type.trim() === '') {
+            throw new Error('Vui lòng nhập tên loại màn hình');
+        }
+        if (!data.base_price || data.base_price <= 0) {
+            throw new Error('Vui lòng nhập giá cơ bản hợp lệ');
+        }
+
+        // Check duplicate
+        const existing = await ScreenTypePrice.findOne({
+            where: { screen_type: data.screen_type.trim() }
+        });
+        if (existing) {
+            throw new Error('Loại màn hình này đã tồn tại');
+        }
+
+        return ScreenTypePrice.create({
+            screen_type: data.screen_type.trim(),
+            base_price: data.base_price,
+            description: data.description || null,
+            is_active: data.is_active !== undefined ? data.is_active : true
+        });
+    },
+
+    async updateScreenTypePrice(id, data) {
+        const screenType = await ScreenTypePrice.findByPk(id);
+        if (!screenType) {
+            throw new Error('Không tìm thấy loại màn hình');
+        }
+
+        // Check duplicate name if changing
+        if (data.screen_type && data.screen_type.trim() !== screenType.screen_type) {
+            const existing = await ScreenTypePrice.findOne({
+                where: { 
+                    screen_type: data.screen_type.trim(),
+                    id: { [Op.ne]: id }
+                }
+            });
+            if (existing) {
+                throw new Error('Tên loại màn hình này đã tồn tại');
+            }
+        }
+
+        await screenType.update({
+            screen_type: data.screen_type?.trim() || screenType.screen_type,
+            base_price: data.base_price !== undefined ? data.base_price : screenType.base_price,
+            description: data.description !== undefined ? data.description : screenType.description,
+            is_active: data.is_active !== undefined ? data.is_active : screenType.is_active
+        });
+
+        return screenType;
+    },
+
+    async deleteScreenTypePrice(id) {
+        const screenType = await ScreenTypePrice.findByPk(id);
+        if (!screenType) {
+            throw new Error('Không tìm thấy loại màn hình');
+        }
+
+        // Check if any room is using this screen type
+        const roomCount = await CinemaRoom.count({
+            where: { screen_type: screenType.screen_type }
+        });
+        if (roomCount > 0) {
+            throw new Error(`Không thể xóa vì có ${roomCount} phòng đang sử dụng loại màn hình này`);
+        }
+
+        await screenType.destroy();
+        return true;
     }
 
 };

@@ -24,6 +24,12 @@ import {
     // Seat Type Prices
     getSeatTypePrices,
     updateSeatTypePrice,
+    // Screen Type Prices
+    getScreenTypePrices,
+    getActiveScreenTypes,
+    createScreenTypePrice,
+    updateScreenTypePrice,
+    deleteScreenTypePrice,
     // Existing
     getAllShowtimesByMovie, 
     getShowtimeByMovieAndTheater, 
@@ -39,6 +45,13 @@ const router = express.Router();
 // Must be defined BEFORE /:id to avoid route conflict
 router.get("/seat-prices", getSeatTypePrices);
 router.put("/seat-prices/:seatType", protectedRoute, updateSeatTypePrice);
+
+// ==================== SCREEN TYPE PRICES (Admin) ====================
+router.get("/screen-types", getScreenTypePrices);
+router.get("/screen-types/active", getActiveScreenTypes);
+router.post("/screen-types", protectedRoute, createScreenTypePrice);
+router.put("/screen-types/:id", protectedRoute, updateScreenTypePrice);
+router.delete("/screen-types/:id", protectedRoute, deleteScreenTypePrice);
 
 // ==================== THEATER CRUD (Admin) ====================
 router.get("/", getTheater);

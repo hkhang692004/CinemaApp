@@ -93,7 +93,7 @@ app.use("/api/orders",orderRoute);
 async function startServer() {
   try {
 
-    
+    // sync() chỉ tạo bảng mới nếu chưa có, không thay đổi bảng đã tồn tại
     await sequelize.sync(); 
 
     // Initialize cron job for updating showtime status

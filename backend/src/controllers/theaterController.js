@@ -377,3 +377,62 @@ export const updateSeatTypePrice = async(req, res) => {
         return res.status(400).json({ message: error.message || "Lỗi hệ thống" });
     }
 };
+
+// ==================== SCREEN TYPE PRICES ====================
+export const getScreenTypePrices = async(req, res) => {
+    try {
+        const prices = await theaterService.getScreenTypePrices();
+        return res.status(200).json({ prices });
+    } catch (error) {
+        console.error("lỗi từ getScreenTypePrices", error);
+        return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};
+
+export const getActiveScreenTypes = async(req, res) => {
+    try {
+        const screenTypes = await theaterService.getActiveScreenTypes();
+        return res.status(200).json({ screenTypes });
+    } catch (error) {
+        console.error("lỗi từ getActiveScreenTypes", error);
+        return res.status(500).json({ message: "Lỗi hệ thống" });
+    }
+};
+
+export const createScreenTypePrice = async(req, res) => {
+    try {
+        const screenType = await theaterService.createScreenTypePrice(req.body);
+        return res.status(201).json({ 
+            message: "Đã tạo loại màn hình mới", 
+            screenType 
+        });
+    } catch (error) {
+        console.error("lỗi từ createScreenTypePrice", error);
+        return res.status(400).json({ message: error.message || "Lỗi hệ thống" });
+    }
+};
+
+export const updateScreenTypePrice = async(req, res) => {
+    try {
+        const { id } = req.params;
+        const updated = await theaterService.updateScreenTypePrice(id, req.body);
+        return res.status(200).json({ 
+            message: "Đã cập nhật loại màn hình", 
+            screenType: updated 
+        });
+    } catch (error) {
+        console.error("lỗi từ updateScreenTypePrice", error);
+        return res.status(400).json({ message: error.message || "Lỗi hệ thống" });
+    }
+};
+
+export const deleteScreenTypePrice = async(req, res) => {
+    try {
+        const { id } = req.params;
+        await theaterService.deleteScreenTypePrice(id);
+        return res.status(200).json({ message: "Đã xóa loại màn hình" });
+    } catch (error) {
+        console.error("lỗi từ deleteScreenTypePrice", error);
+        return res.status(400).json({ message: error.message || "Lỗi hệ thống" });
+    }
+};

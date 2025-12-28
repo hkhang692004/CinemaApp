@@ -20,6 +20,7 @@ import {
     LoyaltyTierRequirement,
     LoyaltyAccount,
     SeatTypePrice,
+    ScreenTypePrice,
     GroupBooking
 } from './models/index.js';
 
@@ -411,6 +412,17 @@ const seatTypePricesData = [
 ];
 
 // =====================================================
+// SCREEN TYPE PRICES DATA
+// =====================================================
+const screenTypePricesData = [
+    { screen_type: 'Standard', base_price: 100000, description: 'Màn hình tiêu chuẩn 2D', is_active: true },
+    { screen_type: 'IMAX', base_price: 150000, description: 'Màn hình IMAX - trải nghiệm hình ảnh sống động với âm thanh vòm', is_active: true },
+    { screen_type: '4DX', base_price: 180000, description: 'Trải nghiệm 4D với ghế chuyển động, gió, nước, mùi hương', is_active: true },
+    { screen_type: 'ScreenX', base_price: 160000, description: 'Màn hình 270 độ bao quanh 3 mặt phòng chiếu', is_active: true },
+    { screen_type: 'Dolby Cinema', base_price: 200000, description: 'Công nghệ Dolby Vision và Dolby Atmos cao cấp nhất', is_active: true },
+];
+
+// =====================================================
 // NEWS DATA
 // =====================================================
 const newsData = [
@@ -569,6 +581,13 @@ async function seedBooking() {
         return;
     }
     
+    // Lấy giá từ bảng ScreenTypePrice
+    const screenTypePrices = await ScreenTypePrice.findAll();
+    const screenPriceMap = {};
+    screenTypePrices.forEach(sp => {
+        screenPriceMap[sp.screen_type] = parseFloat(sp.base_price);
+    });
+    
     const showtimes = [];
     const timeSlots = [
         { hour: 9, minute: 0 },
@@ -582,10 +601,14 @@ async function seedBooking() {
     // Showtime types - all rooms can have all types
     const showtimeTypes = ['2D Phụ đề Việt', '2D Lồng tiếng Việt', '3D Phụ đề Việt', '3D Lồng tiếng Việt'];
     
-    for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+    // Bắt đầu từ NGÀY MAI để đảm bảo tất cả suất chiếu đều trong tương lai
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    for (let dayOffset = 1; dayOffset <= 7; dayOffset++) {  // Từ ngày mai (1) đến 7 ngày sau
         timeSlots.forEach((slot, slotIdx) => {
             rooms.forEach((room, roomIdx) => {
-                const startTime = new Date();
+                const startTime = new Date(today);
                 startTime.setDate(startTime.getDate() + dayOffset);
                 startTime.setHours(slot.hour, slot.minute, 0, 0);
                 
@@ -593,9 +616,8 @@ async function seedBooking() {
                 endTime.setMinutes(endTime.getMinutes() + 150);
                 
                 const movieIdx = (slotIdx + roomIdx + dayOffset) % movies.length;
-                let basePrice = 100000;
-                if (room.screen_type === "IMAX") basePrice = 150000;
-                if (room.screen_type === "4DX") basePrice = 180000;
+                // Lấy giá từ bảng ScreenTypePrice, mặc định 100000 nếu không tìm thấy
+                let basePrice = screenPriceMap[room.screen_type] || 100000;
                 
                 // Rotate through all showtime types for variety
                 // Each slot gets a different type, cycling through all 4
@@ -614,7 +636,7 @@ async function seedBooking() {
         });
     }
     await Showtime.bulkCreate(showtimes);
-    console.log(`✅ Created ${showtimes.length} showtimes`);
+    console.log(`✅ Created ${showtimes.length} showtimes (from ${new Date(today.getTime() + 86400000).toLocaleDateString()} to ${new Date(today.getTime() + 7 * 86400000).toLocaleDateString()})`);
 }
 
 async function seedPromotions() {
@@ -639,6 +661,11 @@ async function seedLoyalty() {
     await SeatTypePrice.destroy({ where: {} });
     await SeatTypePrice.bulkCreate(seatTypePricesData);
     console.log(`✅ Created ${seatTypePricesData.length} seat type prices`);
+    
+    // Seed screen type prices
+    await ScreenTypePrice.destroy({ where: {} });
+    await ScreenTypePrice.bulkCreate(screenTypePricesData);
+    console.log(`✅ Created ${screenTypePricesData.length} screen type prices`);
 }
 
 async function seedNews() {

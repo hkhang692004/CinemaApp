@@ -14,7 +14,7 @@ import ShowtimesPage from './pages/ShowtimesPage';
 import NewsPage from './pages/NewsPage';
 import ReportsPage from './pages/ReportsPage';
 import ManagersPage from './pages/ManagersPage';
-import SeatPricesPage from './pages/SeatPricesPage';
+import PricingPage from './pages/PricingPage';
 import VouchersPage from './pages/VouchersPage';
 import LoyaltyPage from './pages/LoyaltyPage';
 import OrdersPage from './pages/OrdersPage';
@@ -45,7 +45,7 @@ function App() {
                 <Route path="genres" element={<GenresPage />} />
                 <Route path="theaters" element={<TheatersPage />} />
                 <Route path="showtimes" element={<ShowtimesPage />} />
-                <Route path="seat-prices" element={<SeatPricesPage />} />
+                <Route path="pricing" element={<PricingPage />} />
                 <Route path="orders" element={<OrdersPage />} />
                 <Route path="group-bookings" element={<GroupBookingsPage />} />
                 <Route path="combos" element={<CombosPage />} />

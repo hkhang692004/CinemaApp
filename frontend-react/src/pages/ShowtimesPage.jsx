@@ -51,6 +51,17 @@ const fetchRoomsByTheater = async (theaterId) => {
   return response.data.rooms;
 };
 
+// Fetch screen type prices for dynamic pricing
+const fetchScreenTypePrices = async () => {
+  try {
+    const response = await api.get('/theaters/screen-types');
+    return response.data.prices || [];
+  } catch (error) {
+    console.error('Failed to fetch screen type prices:', error);
+    return [];
+  }
+};
+
 const ShowtimesPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -592,11 +603,17 @@ const ShowtimeModal = ({ showtime, onClose, onSave, allShowtimes = [], available
     room_id: showtime?.room_id || '',
     show_date: showtime ? new Date(showtime.start_time).toISOString().split('T')[0] : '',
     start_time: showtime ? new Date(showtime.start_time).toTimeString().slice(0, 5) : '',
-    base_price: showtime?.base_price || 75000,
+    base_price: showtime?.base_price || 100000,
     showtime_type: showtime?.showtime_type || '2D Phụ đề Việt',
     status: showtime?.status || 'Scheduled'
   });
   const [loading, setLoading] = useState(false);
+
+  // Query screen type prices
+  const { data: screenTypePrices = [] } = useQuery({
+    queryKey: ['screenTypePrices'],
+    queryFn: fetchScreenTypePrices
+  });
 
   // Get showtimes in same room on same day for reference
   const showtimesInSameRoomSameDay = useMemo(() => {
@@ -834,17 +851,37 @@ const ShowtimeModal = ({ showtime, onClose, onSave, allShowtimes = [], available
               ) : (
                 <select
                   value={form.room_id}
-                  onChange={(e) => setForm({ ...form, room_id: e.target.value })}
+                  onChange={(e) => {
+                    const selectedRoomId = e.target.value;
+                    const selectedRoom = rooms.find(r => r.id === parseInt(selectedRoomId));
+                    // Auto-set price based on screen type
+                    let newPrice = form.base_price;
+                    if (selectedRoom) {
+                      const screenTypePrice = screenTypePrices.find(
+                        sp => sp.screen_type === selectedRoom.screen_type
+                      );
+                      if (screenTypePrice) {
+                        newPrice = parseFloat(screenTypePrice.base_price);
+                      }
+                    }
+                    setForm({ ...form, room_id: selectedRoomId, base_price: newPrice });
+                  }}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
                   required
                   disabled={!form.theater_id}
                 >
                   <option value="">Chọn phòng</option>
-                  {rooms.filter(r => r.is_active).map(room => (
-                    <option key={room.id} value={room.id}>
-                      {room.screen_type} ({room.name}) - {room.seat_count} ghế
-                    </option>
-                  ))}
+                  {rooms.filter(r => r.is_active).map(room => {
+                    const screenPrice = screenTypePrices.find(sp => sp.screen_type === room.screen_type);
+                    const priceDisplay = screenPrice 
+                      ? ` - ${new Intl.NumberFormat('vi-VN').format(screenPrice.base_price)}đ`
+                      : '';
+                    return (
+                      <option key={room.id} value={room.id}>
+                        {room.screen_type} ({room.name}) - {room.seat_count} ghế{priceDisplay}
+                      </option>
+                    );
+                  })}
                 </select>
               )}
             </div>
@@ -989,6 +1026,9 @@ const ShowtimeModal = ({ showtime, onClose, onSave, allShowtimes = [], available
                 step="1000"
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                💡 Giá tự động theo loại màn hình. Có thể điều chỉnh nếu cần.
+              </p>
             </div>
           </div>
         </form>
