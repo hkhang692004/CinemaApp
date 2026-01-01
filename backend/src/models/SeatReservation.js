@@ -8,7 +8,6 @@ SeatReservation.init({
     showtime_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     seat_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
     user_id: { type: DataTypes.BIGINT.UNSIGNED },
-    session_id: { type: DataTypes.STRING(100) },
     reserved_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     expires_at: { type: DataTypes.DATE, allowNull: false },
     status: { type: DataTypes.ENUM('Held', 'Confirmed', 'Released', 'Expired'), defaultValue: 'Held' }
