@@ -12,11 +12,11 @@ dotenv.config();
 const ACCESS_TOKEN_TTL = "15m";
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
 
-// config mail
+// config mail - dùng port 587 + TLS cho Render
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.APP_EMAIL,
     pass: process.env.APP_PASSWORD,

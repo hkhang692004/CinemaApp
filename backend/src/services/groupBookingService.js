@@ -13,11 +13,11 @@ import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import { emitToAll, SOCKET_EVENTS } from '../socket.js';
 
-// Config mail
+// Config mail - dùng port 587 + TLS cho Render
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
     auth: {
         user: process.env.APP_EMAIL,
         pass: process.env.APP_PASSWORD,
