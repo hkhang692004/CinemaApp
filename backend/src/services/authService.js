@@ -167,16 +167,23 @@ export const authService = {
     user.otp_expires = new Date(Date.now() + 2 * 60 * 1000);
     await user.save();
 
-    await transporter.sendMail({
-      from: "Absolute Cinema <absolutecinema.noreply@gmail.com>",
-      to: email,
-      subject: "Mã OTP khôi phục mật khẩu",
-      html: `
-        <p>Xin chào ${user.full_name},</p>
-        <h2>${otp}</h2>
-        <p>Mã có hiệu lực trong 2 phút</p>
-      `,
-    });
+    try {
+      console.log("Đang gửi OTP đến:", email);
+      const info = await transporter.sendMail({
+        from: "Absolute Cinema <absolutecinema.noreply@gmail.com>",
+        to: email,
+        subject: "Mã OTP khôi phục mật khẩu",
+        html: `
+          <p>Xin chào ${user.full_name},</p>
+          <h2>${otp}</h2>
+          <p>Mã có hiệu lực trong 2 phút</p>
+        `,
+      });
+      console.log("Gửi email thành công:", info.messageId);
+    } catch (emailError) {
+      console.error("Lỗi gửi email:", emailError);
+      throw new Error("Không thể gửi email OTP. Vui lòng thử lại sau.");
+    }
 
     return true;
   },
