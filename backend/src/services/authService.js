@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { Op } from "sequelize";
 import jwt from "jsonwebtoken";
-import nodemailer from "nodemailer";
+import emailService from "../libs/emailService.js";
 import { User } from "../models/User.js";
 import Session from "../models/Session.js";
 import TokenBlacklist from "../models/TokenBlacklist.js";
@@ -11,17 +11,6 @@ dotenv.config();
 
 const ACCESS_TOKEN_TTL = "15m";
 const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
-
-// config mail - dùng port 587 + TLS cho Render
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.APP_EMAIL,
-    pass: process.env.APP_PASSWORD,
-  },
-});
 
 export const authService = {
   async signUp(data) {
@@ -169,8 +158,7 @@ export const authService = {
 
     try {
       console.log("Đang gửi OTP đến:", email);
-      const info = await transporter.sendMail({
-        from: "Absolute Cinema <absolutecinema.noreply@gmail.com>",
+      await emailService.sendMail({
         to: email,
         subject: "Mã OTP khôi phục mật khẩu",
         html: `
@@ -179,7 +167,7 @@ export const authService = {
           <p>Mã có hiệu lực trong 2 phút</p>
         `,
       });
-      console.log("Gửi email thành công:", info.messageId);
+      console.log("Gửi email OTP thành công");
     } catch (emailError) {
       console.error("Lỗi gửi email:", emailError);
       throw new Error("Không thể gửi email OTP. Vui lòng thử lại sau.");

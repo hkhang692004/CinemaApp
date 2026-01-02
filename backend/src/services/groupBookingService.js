@@ -9,20 +9,9 @@ import Movie from '../models/Movie.js';
 import DailyStatistic from '../models/DailyStatistic.js';
 import Promotion from '../models/Promotion.js';
 import { Op } from 'sequelize';
-import nodemailer from 'nodemailer';
+import emailService from '../libs/emailService.js';
 import crypto from 'crypto';
 import { emitToAll, SOCKET_EVENTS } from '../socket.js';
-
-// Config mail - dùng port 587 + TLS cho Render
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: {
-        user: process.env.APP_EMAIL,
-        pass: process.env.APP_PASSWORD,
-    },
-});
 
 // Tạo booking code unique
 function generateBookingCode() {
@@ -192,17 +181,14 @@ async function sendGroupBookingConfirmationEmail(booking, showtime, seats, theat
 </html>
     `;
 
-    const mailOptions = {
-        from: `"Absolute Cinema" <${process.env.APP_EMAIL}>`,
-        to: booking.email,
-        subject: `[Absolute Cinema] Xác nhận đặt chỗ - ${bookingCode}`,
-        html: htmlContent
-    };
-
     try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Group booking confirmation email sent to ${booking.email}: ${info.messageId}`);
-        return { success: true, messageId: info.messageId, bookingCode };
+        await emailService.sendMail({
+            to: booking.email,
+            subject: `[Absolute Cinema] Xác nhận đặt chỗ - ${bookingCode}`,
+            html: htmlContent
+        });
+        console.log(`✅ Group booking confirmation email sent to ${booking.email}`);
+        return { success: true, bookingCode };
     } catch (error) {
         console.error(`❌ Failed to send confirmation email:`, error.message);
         return { success: false, error: error.message, bookingCode };
@@ -298,17 +284,14 @@ async function sendRejectionEmail(booking, reason, isRejected = true) {
 </html>
     `;
 
-    const mailOptions = {
-        from: `"Absolute Cinema" <${process.env.APP_EMAIL}>`,
-        to: booking.email,
-        subject: `[Absolute Cinema] Yêu cầu của bạn đã được ${statusLabel.toLowerCase()}`,
-        html: htmlContent
-    };
-
     try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Rejection email sent to ${booking.email}: ${info.messageId}`);
-        return { success: true, messageId: info.messageId };
+        await emailService.sendMail({
+            to: booking.email,
+            subject: `[Absolute Cinema] Yêu cầu của bạn đã được ${statusLabel.toLowerCase()}`,
+            html: htmlContent
+        });
+        console.log(`✅ Rejection email sent to ${booking.email}`);
+        return { success: true };
     } catch (error) {
         console.error(`❌ Failed to send rejection email:`, error.message);
         return { success: false, error: error.message };
@@ -555,17 +538,14 @@ async function sendVoucherEmail(booking, vouchers) {
 </html>
     `;
 
-    const mailOptions = {
-        from: `"Absolute Cinema" <${process.env.APP_EMAIL}>`,
-        to: booking.email,
-        subject: `[Absolute Cinema] 🎁 ${vouchers.length} Mã voucher doanh nghiệp của bạn`,
-        html: htmlContent
-    };
-
     try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ Voucher email sent to ${booking.email}: ${info.messageId}`);
-        return { success: true, messageId: info.messageId };
+        await emailService.sendMail({
+            to: booking.email,
+            subject: `[Absolute Cinema] 🎁 ${vouchers.length} Mã voucher doanh nghiệp của bạn`,
+            html: htmlContent
+        });
+        console.log(`✅ Voucher email sent to ${booking.email}`);
+        return { success: true };
     } catch (error) {
         console.error(`❌ Failed to send voucher email:`, error.message);
         return { success: false, error: error.message };

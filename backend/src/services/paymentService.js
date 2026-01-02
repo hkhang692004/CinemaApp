@@ -1,7 +1,7 @@
 import { VNPay, ignoreLogger, ProductCode, VnpLocale } from 'vnpay';
 import { Op } from 'sequelize';
 import crypto from 'crypto';
-import nodemailer from 'nodemailer';
+import emailService from '../libs/emailService.js';
 import { 
     Order, 
     Payment, 
@@ -195,17 +195,6 @@ const updateDailyStatistics = async (order, tickets) => {
     }
 };
 
-// Config mail - dùng port 587 + TLS cho Render
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: {
-        user: process.env.APP_EMAIL,
-        pass: process.env.APP_PASSWORD,
-    },
-});
-
 // Gửi email hóa đơn VAT
 async function sendInvoiceEmail(invoiceData, orderCode) {
     const {
@@ -309,16 +298,12 @@ async function sendInvoiceEmail(invoiceData, orderCode) {
 </html>
     `;
 
-    const mailOptions = {
-        from: `"Cinema App" <${process.env.APP_EMAIL}>`,
+    await emailService.sendMail({
         to: buyer_email,
         subject: `[Cinema App] Hóa đơn VAT - ${invoice_number}`,
         html: htmlContent
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ Invoice email sent to ${buyer_email}: ${info.messageId}`);
-    return info;
+    });
+    console.log(`✅ Invoice email sent to ${buyer_email}`);
 }
 
 // Tạo QR code data cho ticket
