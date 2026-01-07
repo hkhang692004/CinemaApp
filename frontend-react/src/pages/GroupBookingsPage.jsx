@@ -742,10 +742,16 @@ const GroupBookingsPage = () => {
           return;
         }
         
-        // Group booking needs selected seats
-        if (serviceType === 'group_booking' && editForm.selectedSeats.length === 0) {
-          toast.error('Vui lòng chọn ghế cho nhóm trước khi duyệt');
-          return;
+        // Group booking needs selected seats matching guest count
+        if (serviceType === 'group_booking') {
+          if (editForm.selectedSeats.length === 0) {
+            toast.error('Vui lòng chọn ghế cho nhóm trước khi duyệt');
+            return;
+          }
+          if (editForm.selectedSeats.length < selectedBooking.guest_count) {
+            toast.error(`Số ghế đã chọn (${editForm.selectedSeats.length}) chưa đủ cho số khách (${selectedBooking.guest_count} người)`);
+            return;
+          }
         }
       }
 
