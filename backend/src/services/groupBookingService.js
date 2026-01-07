@@ -12,6 +12,7 @@ import { Op } from 'sequelize';
 import emailService from '../libs/emailService.js';
 import crypto from 'crypto';
 import { emitToAll, SOCKET_EVENTS } from '../socket.js';
+import QRCode from 'qrcode';
 
 // Tạo booking code unique
 function generateBookingCode() {
@@ -52,9 +53,23 @@ async function sendGroupBookingConfirmationEmail(booking, showtime, seats, theat
     const theaterName = theater?.name || 'Theo sắp xếp';
     const theaterAddress = theater?.address || '';
 
-    // QR Code data - sử dụng goqr.me API (đáng tin cậy với email clients)
+    // Generate QR Code as base64 (embedded directly in email)
     const qrData = `GROUP:${bookingCode}`;
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}&format=png`;
+    let qrCodeBase64;
+    try {
+        qrCodeBase64 = await QRCode.toDataURL(qrData, {
+            width: 200,
+            margin: 1,
+            color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+            }
+        });
+    } catch (err) {
+        console.error('Error generating QR code:', err);
+        // Fallback to external API if QR generation fails
+        qrCodeBase64 = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}&format=png`;
+    }
 
     const serviceTypeLabels = {
         'group_booking': 'Đặt vé nhóm',
@@ -89,11 +104,8 @@ async function sendGroupBookingConfirmationEmail(booking, showtime, seats, theat
 
             <!-- QR Code -->
             <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 10px; margin-bottom: 25px;">
-                <a href="${qrCodeUrl}" target="_blank" style="text-decoration: none;">
-                    <img src="${qrCodeUrl}" alt="QR Code - Click để xem" width="200" height="200" style="border: 4px solid white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: block; margin: 0 auto;" />
-                </a>
+                <img src="${qrCodeBase64}" alt="QR Code" width="200" height="200" style="border: 4px solid white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: block; margin: 0 auto;" />
                 <p style="color: #666; margin-top: 10px; font-size: 14px;">📱 Quét mã QR này tại quầy để check-in</p>
-                <p style="color: #999; margin-top: 5px; font-size: 12px;">Nếu không thấy mã QR, <a href="${qrCodeUrl}" target="_blank" style="color: #667eea;">click vào đây</a></p>
             </div>
 
             <!-- Service Info -->
