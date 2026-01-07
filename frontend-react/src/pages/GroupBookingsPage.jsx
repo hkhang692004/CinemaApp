@@ -636,7 +636,8 @@ const GroupBookingsPage = () => {
   const getEstimatedEndTime = () => {
     if (!editForm.privateShowTime || !editForm.privateShowDate) return null;
     const duration = getSelectedMovieDuration();
-    const startDateTime = new Date(`${editForm.privateShowDate}T${editForm.privateShowTime}:00`);
+    // Sử dụng timezone VN (+07:00)
+    const startDateTime = new Date(`${editForm.privateShowDate}T${editForm.privateShowTime}:00+07:00`);
     const movieEndTime = new Date(startDateTime.getTime() + duration * 60000);
     const endWithGap = new Date(movieEndTime.getTime() + 15 * 60000); // +15 min gap
     return { movieEnd: movieEndTime, withGap: endWithGap };
@@ -646,7 +647,8 @@ const GroupBookingsPage = () => {
   const checkShowtimeConflict = (newTime) => {
     if (!newTime || existingShowtimes.length === 0) return null;
     
-    const newStart = new Date(`${editForm.privateShowDate}T${newTime}:00`);
+    // Tạo datetime với timezone VN (+07:00) để so sánh đúng
+    const newStart = new Date(`${editForm.privateShowDate}T${newTime}:00+07:00`);
     const duration = getSelectedMovieDuration();
     const minGapMinutes = 15;
     const newEnd = new Date(newStart.getTime() + duration * 60000); // Phim kết thúc
@@ -699,7 +701,8 @@ const GroupBookingsPage = () => {
       return;
     }
 
-    const startTime = `${editForm.privateShowDate}T${editForm.privateShowTime}:00`;
+    // Tạo datetime với timezone VN (+07:00)
+    const startTime = `${editForm.privateShowDate}T${editForm.privateShowTime}:00+07:00`;
     
     createShowtimeMutation.mutate({
       roomId: parseInt(editForm.roomId),
