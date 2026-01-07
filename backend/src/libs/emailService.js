@@ -9,7 +9,7 @@ const FROM_EMAIL = 'absolutecinema.noreply@gmail.com';
 const FROM_NAME = 'Absolute Cinema';
 
 export const emailService = {
-    async sendMail({ to, subject, html }) {
+    async sendMail({ to, subject, html, attachments }) {
         try {
             const msg = {
                 to,
@@ -20,6 +20,11 @@ export const emailService = {
                 subject,
                 html,
             };
+
+            // Thêm attachments nếu có (cho inline images với CID)
+            if (attachments && attachments.length > 0) {
+                msg.attachments = attachments;
+            }
 
             const response = await sgMail.send(msg);
             console.log('Email sent successfully:', response[0].statusCode);
