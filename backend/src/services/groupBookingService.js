@@ -1309,17 +1309,33 @@ export const groupBookingService = {
      * Lấy danh sách suất chiếu theo phòng và ngày (admin)
      */
     async getShowtimesByRoom(roomId, date) {
-        const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
+        // Parse date string (YYYY-MM-DD) và tạo UTC range cho ngày đó
+        // Giả sử date là theo múi giờ VN (UTC+7)
+        const [year, month, day] = date.split('-').map(Number);
+        
+        // 00:00 VN = 17:00 UTC ngày hôm trước
+        const startOfDayVN = new Date(Date.UTC(year, month - 1, day, -7, 0, 0, 0));
+        // 23:59 VN = 16:59 UTC ngày hiện tại
+        const endOfDayVN = new Date(Date.UTC(year, month - 1, day, 16, 59, 59, 999));
+
+        console.log(`📅 Getting showtimes for room ${roomId}, date ${date}: ${startOfDayVN.toISOString()} - ${endOfDayVN.toISOString()}`);
 
         const showtimes = await Showtime.findAll({
             where: {
                 room_id: roomId,
-                start_time: {
-                    [Op.between]: [startOfDay, endOfDay]
-                },
+                // Lấy cả suất chiếu bắt đầu trong ngày HOẶC kết thúc trong ngày
+                [Op.or]: [
+                    {
+                        start_time: {
+                            [Op.between]: [startOfDayVN, endOfDayVN]
+                        }
+                    },
+                    {
+                        end_time: {
+                            [Op.between]: [startOfDayVN, endOfDayVN]
+                        }
+                    }
+                ],
                 status: 'Scheduled'
             },
             include: [
@@ -1327,6 +1343,8 @@ export const groupBookingService = {
             ],
             order: [['start_time', 'ASC']]
         });
+
+        console.log(`📅 Found ${showtimes.length} showtimes for room ${roomId} on ${date}`);
 
         return showtimes;
     },
