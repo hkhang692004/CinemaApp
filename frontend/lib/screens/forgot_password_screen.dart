@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
@@ -22,6 +23,57 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   String? message;
 
   final formKey = GlobalKey<FormState>();
+
+  // Timer cho OTP validity (2 phút = 120 giây)
+  Timer? _otpTimer;
+  int _otpSecondsRemaining = 120;
+
+  // Timer cho resend cooldown (20 giây)
+  Timer? _resendTimer;
+  int _resendSecondsRemaining = 0;
+
+  bool get canResend => _resendSecondsRemaining == 0;
+  bool get isOtpExpired => _otpSecondsRemaining == 0;
+
+  void startOtpTimer() {
+    _otpTimer?.cancel();
+    _otpSecondsRemaining = 120; // 2 phút
+    _otpTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_otpSecondsRemaining > 0) {
+        setState(() => _otpSecondsRemaining--);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  void startResendCooldown() {
+    _resendTimer?.cancel();
+    _resendSecondsRemaining = 20;
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_resendSecondsRemaining > 0) {
+        setState(() => _resendSecondsRemaining--);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  String formatTime(int seconds) {
+    int minutes = seconds ~/ 60;
+    int secs = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  void dispose() {
+    _otpTimer?.cancel();
+    _resendTimer?.cancel();
+    emailController.dispose();
+    newPasswordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   void showSnackbar(String msg, [bool isSuccess = false]) {
     if (isSuccess) {
@@ -133,6 +185,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               (success ? "OTP đã gửi đến email của bạn!" : "Không gửi được OTP. Kiểm tra lại email.");
                         });
                         if (otpSent) {
+                          startOtpTimer();
+                          startResendCooldown();
                           showSnackbar("Hãy kiểm tra email để lấy mã OTP!", true);
                         } else if (message != null) {
                           showSnackbar(message!);
@@ -163,6 +217,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ),
                     ),
                     Text("Mã OTP", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 4),
+                    // Timer hiển thị thời gian còn lại
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.timer_outlined,
+                              size: 16,
+                              color: isOtpExpired ? Colors.red : Colors.grey[600],
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              isOtpExpired
+                                  ? "Mã OTP đã hết hạn"
+                                  : "Còn lại: ${formatTime(_otpSecondsRemaining)}",
+                              style: TextStyle(
+                                color: isOtpExpired ? Colors.red : Colors.grey[600],
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                     SizedBox(height: 10),
                     PinCodeTextField(
                       length: 6,
@@ -191,13 +271,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
-                        onPressed: authProvider.isLoading
+                        onPressed: (authProvider.isLoading || !canResend)
                             ? null
                             : () async {
                           await authProvider.sendOTP(emailController.text.trim());
+                          startOtpTimer();
+                          startResendCooldown();
                           showSnackbar("OTP đã được gửi lại!", true);
                         },
-                        child: Text("Gửi lại OTP", style: TextStyle(color: Color(0xFFE53935))),
+                        child: Text(
+                          canResend
+                              ? "Gửi lại OTP"
+                              : "Gửi lại OTP (${_resendSecondsRemaining}s)",
+                          style: TextStyle(
+                            color: canResend ? Color(0xFFE53935) : Colors.grey,
+                          ),
+                        ),
                       ),
                     ),
                     SizedBox(height: 8),

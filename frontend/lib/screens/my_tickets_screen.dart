@@ -62,7 +62,7 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
         // Parse showtime date
         final showtimeStr = ticket['showtime']?['start_time'];
         if (showtimeStr != null) {
-          final showtime = DateTime.tryParse(showtimeStr);
+          final showtime = DateTime.tryParse(showtimeStr)?.toLocal();
           if (showtime != null) {
             if (showtime.isAfter(now)) {
               upcoming.add(ticket);
@@ -278,8 +278,10 @@ class _MyTicketsScreenState extends State<MyTicketsScreen>
     if (showtime?['start_time'] != null) {
       showtimeDate = DateTime.tryParse(showtime['start_time']);
       if (showtimeDate != null) {
-        dateStr = DateFormat('dd/MM/yyyy').format(showtimeDate);
-        timeStr = DateFormat('HH:mm').format(showtimeDate);
+        // Convert sang local time để hiển thị đúng múi giờ
+        final localShowtime = showtimeDate.toLocal();
+        dateStr = DateFormat('dd/MM/yyyy').format(localShowtime);
+        timeStr = DateFormat('HH:mm').format(localShowtime);
       }
     }
 

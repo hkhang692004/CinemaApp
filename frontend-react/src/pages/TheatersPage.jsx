@@ -298,6 +298,8 @@ const TheatersPage = () => {
           onClose={() => setShowGenerateSeatsModal(false)}
           onSave={() => {
             queryClient.invalidateQueries({ queryKey: ['seats', selectedRoom.id] });
+            queryClient.invalidateQueries({ queryKey: ['rooms', selectedRoom.theater_id] });
+            queryClient.invalidateQueries({ queryKey: ['theaters'] });
             setShowGenerateSeatsModal(false);
           }}
         />

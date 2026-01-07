@@ -111,7 +111,8 @@ class _AccountScreenState extends State<AccountScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (mounted) {
-          final newAvatarUrl = data['user']?['avatarUrl'] ?? data['user']?['avatar_url'];
+          // Backend trả về avatarUrl ở root level, không phải trong user object
+          final newAvatarUrl = data['avatarUrl'] ?? data['avatar_url'] ?? data['user']?['avatarUrl'] ?? data['user']?['avatar_url'];
           
           // Cập nhật vào AuthProvider để lưu cache
           if (newAvatarUrl != null) {
@@ -306,7 +307,9 @@ class _AccountScreenState extends State<AccountScreen> {
                       : avatarUrl != null && avatarUrl.isNotEmpty
                       ? ClipOval(
                     child: CachedNetworkImage(
+                      key: ValueKey(avatarUrl), // Force rebuild khi URL thay đổi
                       imageUrl: avatarUrl,
+                      cacheKey: avatarUrl, // Đảm bảo cache key dựa trên URL
                       width: 96,
                       height: 96,
                       fit: BoxFit.cover,

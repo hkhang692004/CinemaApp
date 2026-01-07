@@ -36,6 +36,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   Future<void> _changePassword() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Lưu tham chiếu trước khi async để tránh lỗi deactivated widget
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     setState(() => _isLoading = true);
 
     try {
@@ -62,15 +66,18 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         setState(() => _isLoading = false);
 
         if (response.statusCode == 200) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          // Dùng scaffoldMessenger đã lưu trước đó
+          scaffoldMessenger.showSnackBar(
             const SnackBar(
               content: Text('Đổi mật khẩu thành công'),
               backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
             ),
           );
-          Navigator.pop(context);
+          // Pop ngay, SnackBar sẽ hiển thị trên màn hình parent
+          navigator.pop(true);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Text(data['message'] ?? 'Lỗi đổi mật khẩu'),
               backgroundColor: Colors.red,
@@ -81,12 +88,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        // Chỉ hiển thị snackbar nếu không phải lỗi session hết hạn (đã redirect về login)
+        if (!e.toString().contains('Phiên đăng nhập')) {
+          scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Text('Lỗi: ${e.toString().replaceAll('Exception: ', '')}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }

@@ -110,7 +110,7 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
       debugPrint('Lỗi SignIn trong AuthProvider: $e');
       return false;
     } finally {
@@ -157,7 +157,7 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
       debugPrint('Lỗi SignUp trong AuthProvider: $e');
       return false;
     } finally {
@@ -206,7 +206,7 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
       debugPrint('Lỗi SignOut trong AuthProvider: $e');
       return false;
     } finally {
@@ -224,7 +224,7 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
       debugPrint('Lỗi sendOTP trong AuthProvider: $e');
       return false;
     } finally {
@@ -246,7 +246,7 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
       debugPrint('Lỗi forgotPassword trong AuthProvider: $e');
       return false;
     } finally {
