@@ -728,7 +728,7 @@ const GroupBookingsPage = () => {
     if (editForm.status === 'Approved' || editForm.status === 'Completed') {
       const serviceType = selectedBooking.service_type;
       
-      // Voucher type không cần showtime
+      // Voucher type không cần showtime nhưng cần tạo voucher
       if (serviceType !== 'voucher') {
         // All other types need showtime
         if (!editForm.showtimeId) {
@@ -752,6 +752,12 @@ const GroupBookingsPage = () => {
             toast.error(`Số ghế đã chọn (${editForm.selectedSeats.length}) chưa đủ cho số khách (${selectedBooking.guest_count} người)`);
             return;
           }
+        }
+      } else {
+        // Voucher type - cần đã tạo voucher trước khi duyệt
+        if (createdVouchers.length === 0) {
+          toast.error('Vui lòng tạo voucher trước khi duyệt');
+          return;
         }
       }
 
