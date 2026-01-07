@@ -4,5 +4,5 @@ A full-stack movie ticket booking system with web admin dashboard and mobile cus
 
 ## Demo
 
-**Video Demo:** [Watch on YouTube](https://www.youtube.com/watch?v=8Rlcc9IoZHE)
+**Video Demo:** [YouTube](https://www.youtube.com/watch?v=8Rlcc9IoZHE)
 
