@@ -65,10 +65,12 @@ async function sendGroupBookingConfirmationEmail(booking, showtime, seats, theat
                 light: '#FFFFFF'
             }
         });
+        console.log('✅ QR Code generated successfully for:', bookingCode);
     } catch (err) {
-        console.error('Error generating QR code:', err);
+        console.error('❌ Error generating QR code:', err);
         // Fallback to external API if QR generation fails
         qrCodeBase64 = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}&format=png`;
+        console.log('⚠️ Using fallback external QR API');
     }
 
     const serviceTypeLabels = {
