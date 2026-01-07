@@ -724,8 +724,8 @@ const GroupBookingsPage = () => {
       return;
     }
 
-    // Validate before approving - must have all required info
-    if (editForm.status === 'Approved') {
+    // Validate before approving or completing - must have all required info
+    if (editForm.status === 'Approved' || editForm.status === 'Completed') {
       const serviceType = selectedBooking.service_type;
       
       // Voucher type không cần showtime

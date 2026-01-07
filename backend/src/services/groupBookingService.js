@@ -871,8 +871,7 @@ export const groupBookingService = {
             const reservedSeats = await SeatReservation.findAll({
                 where: {
                     showtime_id: booking.assigned_showtime_id,
-                    status: 'Confirmed',
-                    user_id: null // Group booking reservations have no user_id
+                    status: 'Confirmed'
                 },
                 attributes: ['seat_id']
             });
