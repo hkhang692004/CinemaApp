@@ -36,9 +36,21 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   Future<void> _changePassword() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Kiểm tra mounted trước khi truy cập context
+    if (!mounted) return;
+
     // Lưu tham chiếu trước khi async để tránh lỗi deactivated widget
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
+    late final ScaffoldMessengerState scaffoldMessenger;
+    late final NavigatorState navigator;
+    
+    try {
+      scaffoldMessenger = ScaffoldMessenger.of(context);
+      navigator = Navigator.of(context);
+    } catch (e) {
+      // Context không còn hợp lệ, thoát khỏi hàm
+      debugPrint('Context is no longer valid: $e');
+      return;
+    }
 
     setState(() => _isLoading = true);
 

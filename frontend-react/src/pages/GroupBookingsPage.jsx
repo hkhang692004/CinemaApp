@@ -1678,19 +1678,31 @@ const GroupBookingsPage = () => {
                                     {seats.map((seat) => {
                                       const isSelected = editForm.selectedSeats.includes(seat.id);
                                       const isAvailable = seat.is_available;
+                                      const seatType = seat.seat_type || 'Standard';
+                                      
+                                      // Determine seat style based on type and state
+                                      let seatStyle = '';
+                                      if (!isAvailable) {
+                                        seatStyle = 'bg-gray-300 text-gray-500 cursor-not-allowed';
+                                      } else if (isSelected) {
+                                        seatStyle = 'bg-indigo-500 text-white';
+                                      } else if (seatType === 'VIP') {
+                                        seatStyle = 'bg-orange-100 text-orange-700 border-2 border-orange-400 hover:bg-orange-200';
+                                      } else if (seatType === 'Couple') {
+                                        seatStyle = 'bg-pink-100 text-pink-700 border-2 border-pink-400 hover:bg-pink-200';
+                                      } else if (seatType === 'Wheelchair') {
+                                        seatStyle = 'bg-blue-100 text-blue-700 border-2 border-blue-400 hover:bg-blue-200';
+                                      } else {
+                                        seatStyle = 'bg-green-100 text-green-700 hover:bg-green-200';
+                                      }
+                                      
                                       return (
                                         <button
                                           key={seat.id}
                                           onClick={() => isAvailable && toggleSeat(seat.id)}
                                           disabled={!isAvailable}
-                                          className={`w-7 h-7 rounded text-xs font-medium transition-colors ${
-                                            !isAvailable
-                                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                              : isSelected
-                                              ? 'bg-indigo-500 text-white'
-                                              : 'bg-green-100 text-green-700 hover:bg-green-200'
-                                          }`}
-                                          title={`${row}${seat.seat_number}`}
+                                          className={`w-7 h-7 rounded text-xs font-medium transition-colors ${seatStyle}`}
+                                          title={`${row}${seat.seat_number} (${seatType})`}
                                         >
                                           {seat.seat_number}
                                         </button>
@@ -1702,10 +1714,22 @@ const GroupBookingsPage = () => {
                             </div>
 
                             {/* Legend */}
-                            <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-100 text-sm">
+                            <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-gray-100 text-sm">
                               <div className="flex items-center gap-1">
-                                <div className="w-5 h-5 rounded bg-green-100"></div>
-                                <span>Trống</span>
+                                <div className="w-5 h-5 rounded bg-green-100 border border-green-300"></div>
+                                <span>Thường</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-5 h-5 rounded bg-blue-100 border-2 border-blue-400"></div>
+                                <span>Wheelchair</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-5 h-5 rounded bg-orange-100 border-2 border-orange-400"></div>
+                                <span>VIP</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-5 h-5 rounded bg-pink-100 border-2 border-pink-400"></div>
+                                <span>Couple</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <div className="w-5 h-5 rounded bg-indigo-500"></div>

@@ -409,6 +409,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       backgroundColor = Colors.pink[50]!;
       borderColor = Colors.pink;
       textColor = Colors.pink[50]!; // Ẩn chữ (màu text = màu nền)
+    } else if (seat.seatType == 'Wheelchair') {
+      backgroundColor = Colors.blue[50]!;
+      borderColor = Colors.blue;
+      textColor = Colors.blue[50]!; // Ẩn chữ (màu text = màu nền)
     } else {
       backgroundColor = Colors.white;
       borderColor = Colors.grey[400]!;
@@ -465,13 +469,18 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       color: Colors.grey[50],
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 16,
+        runSpacing: 8,
+        direction: Axis.horizontal,
         children: [
           _buildLegendItem('Trống', bgColor: Colors.white, borderColor: Colors.grey[400]!),
           _buildLegendItem('Đang chọn', bgColor: Colors.blue, borderColor: Colors.blue[700]!),
           _buildLegendItem('Đã đặt', imagePath: 'lib/assets/Absolute_Cinema.jpg'),
           _buildLegendItem('VIP', bgColor: Colors.orange[50]!, borderColor: Colors.orange),
+          _buildLegendItem('Couple', bgColor: Colors.pink[50]!, borderColor: Colors.pink),
+          _buildLegendItem('Wheelchair', bgColor: Colors.blue[50]!, borderColor: Colors.blue),
         ],
       ),
     );
@@ -484,6 +493,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     String? imagePath,
   }) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         imagePath != null
             ? ClipRRect(

@@ -161,8 +161,9 @@ class _AccountScreenState extends State<AccountScreen> {
       context: context,
       builder: (context) =>
           AlertDialog(
-            title: const Text('Đăng xuất'),
-            content: const Text('Bạn có chắc chắn muốn đăng xuất?'),
+            backgroundColor: Colors.white,
+            title: const Text('Đăng xuất', style: TextStyle(color: Colors.black)),
+            content: const Text('Bạn có chắc chắn muốn đăng xuất?', style: TextStyle(color: Colors.black87)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
