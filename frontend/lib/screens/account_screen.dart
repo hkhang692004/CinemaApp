@@ -149,11 +149,22 @@ class _AccountScreenState extends State<AccountScreen> {
     }
   }
 
-  void _navigateToChangePassword() {
-    Navigator.push(
+  void _navigateToChangePassword() async {
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => const ChangePasswordScreen()),
     );
+    
+    // Hiển thị thông báo thành công nếu đổi mật khẩu thành công
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đổi mật khẩu thành công'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   void _handleLogout() async {

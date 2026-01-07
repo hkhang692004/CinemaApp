@@ -1419,32 +1419,35 @@ export const groupBookingService = {
             throw new Error('Thời gian bắt đầu không hợp lệ');
         }
         const end = new Date(start.getTime() + duration * 60000);
+        
+        // Thêm 15 phút buffer
+        const minGapMs = 15 * 60000;
+        const startWithBuffer = new Date(start.getTime() - minGapMs);
+        const endWithBuffer = new Date(end.getTime() + minGapMs);
 
-        // Kiểm tra xung đột thời gian
+        // Kiểm tra xung đột thời gian (bao gồm buffer 15 phút)
         const conflict = await Showtime.findOne({
             where: {
                 room_id: roomId,
                 status: 'Scheduled',
                 [Op.or]: [
+                    // Suất mới bắt đầu trong khoảng của suất hiện có (tính cả buffer)
                     {
-                        start_time: { [Op.between]: [start, end] }
-                    },
-                    {
-                        end_time: { [Op.between]: [start, end] }
-                    },
-                    {
-                        [Op.and]: [
-                            { start_time: { [Op.lte]: start } },
-                            { end_time: { [Op.gte]: end } }
-                        ]
+                        start_time: { [Op.lt]: endWithBuffer },
+                        end_time: { [Op.gt]: startWithBuffer }
                     }
                 ]
             }
         });
 
         if (conflict) {
-            throw new Error('Thời gian này đã có suất chiếu khác');
+            const conflictStart = new Date(conflict.start_time);
+            const conflictEnd = new Date(conflict.end_time);
+            console.log(`❌ Conflict found: Room ${roomId}, New: ${start.toISOString()} - ${end.toISOString()}, Existing: ${conflictStart.toISOString()} - ${conflictEnd.toISOString()}`);
+            throw new Error(`Thời gian này trùng với suất chiếu ${conflictStart.toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})} - ${conflictEnd.toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})}`);
         }
+        
+        console.log(`✅ No conflict for Room ${roomId}, New showtime: ${start.toISOString()} - ${end.toISOString()}`);
 
         // Tạo suất chiếu
         const showtime = await Showtime.create({

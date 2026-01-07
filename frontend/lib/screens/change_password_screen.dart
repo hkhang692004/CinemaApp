@@ -39,19 +39,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     // Kiểm tra mounted trước khi truy cập context
     if (!mounted) return;
 
-    // Lưu tham chiếu trước khi async để tránh lỗi deactivated widget
-    late final ScaffoldMessengerState scaffoldMessenger;
-    late final NavigatorState navigator;
-    
-    try {
-      scaffoldMessenger = ScaffoldMessenger.of(context);
-      navigator = Navigator.of(context);
-    } catch (e) {
-      // Context không còn hợp lệ, thoát khỏi hàm
-      debugPrint('Context is no longer valid: $e');
-      return;
-    }
-
     setState(() => _isLoading = true);
 
     try {
@@ -74,41 +61,34 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
       final data = jsonDecode(response.body);
 
-      if (mounted) {
-        setState(() => _isLoading = false);
+      if (!mounted) return;
+      
+      setState(() => _isLoading = false);
 
-        if (response.statusCode == 200) {
-          // Dùng scaffoldMessenger đã lưu trước đó
-          scaffoldMessenger.showSnackBar(
-            const SnackBar(
-              content: Text('Đổi mật khẩu thành công'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-          // Pop ngay, SnackBar sẽ hiển thị trên màn hình parent
-          navigator.pop(true);
-        } else {
-          scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Text(data['message'] ?? 'Lỗi đổi mật khẩu'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+      if (response.statusCode == 200) {
+        // Pop trước, sau đó hiển thị snackbar ở màn hình parent
+        Navigator.pop(context, true);
+      } else {
+        // Chỉ hiển thị snackbar nếu còn mounted
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Lỗi đổi mật khẩu'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        // Chỉ hiển thị snackbar nếu không phải lỗi session hết hạn (đã redirect về login)
-        if (!e.toString().contains('Phiên đăng nhập')) {
-          scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Text('Lỗi: ${e.toString().replaceAll('Exception: ', '')}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+      if (!mounted) return;
+      
+      setState(() => _isLoading = false);
+      // Chỉ hiển thị snackbar nếu không phải lỗi session hết hạn (đã redirect về login)
+      if (!e.toString().contains('Phiên đăng nhập')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString().replaceAll('Exception: ', '')}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
