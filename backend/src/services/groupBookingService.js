@@ -53,26 +53,10 @@ async function sendGroupBookingConfirmationEmail(booking, showtime, seats, theat
     const theaterName = theater?.name || 'Theo sắp xếp';
     const theaterAddress = theater?.address || '';
 
-    // Generate QR Code as base64 for email attachment
+    // Generate QR Code URL using quickchart.io (trusted by email clients)
     const qrData = `GROUP:${bookingCode}`;
-    let qrCodeBase64Raw = '';
-    try {
-        // Generate QR as base64 (returns data:image/png;base64,...)
-        const qrDataUrl = await QRCode.toDataURL(qrData, {
-            width: 200,
-            margin: 1,
-            color: {
-                dark: '#000000',
-                light: '#FFFFFF'
-            }
-        });
-        // Extract only the base64 part (remove data:image/png;base64, prefix)
-        qrCodeBase64Raw = qrDataUrl.replace(/^data:image\/png;base64,/, '');
-        console.log('✅ QR Code generated successfully for:', bookingCode);
-    } catch (err) {
-        console.error('❌ Error generating QR code:', err);
-        qrCodeBase64Raw = null;
-    }
+    const qrCodeUrl = `https://quickchart.io/qr?text=${encodeURIComponent(qrData)}&size=200&margin=1`;
+    console.log('✅ QR Code URL generated for:', bookingCode);
 
     const serviceTypeLabels = {
         'group_booking': 'Đặt vé nhóm',
@@ -107,8 +91,12 @@ async function sendGroupBookingConfirmationEmail(booking, showtime, seats, theat
 
             <!-- QR Code -->
             <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 10px; margin-bottom: 25px;">
-                <img src="cid:qrcode" alt="QR Code" width="200" height="200" style="border: 4px solid white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: block; margin: 0 auto;" />
+                <img src="${qrCodeUrl}" alt="Mã QR Check-in" width="200" height="200" style="border: 4px solid white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); display: block; margin: 0 auto;" />
                 <p style="color: #666; margin-top: 10px; font-size: 14px;">📱 Quét mã QR này tại quầy để check-in</p>
+                <p style="color: #999; margin-top: 5px; font-size: 12px;">
+                    Không thấy mã QR? 
+                    <a href="${qrCodeUrl}" target="_blank" style="color: #667eea; text-decoration: underline;">Bấm vào đây để xem</a>
+                </p>
             </div>
 
             <!-- Service Info -->
@@ -195,23 +183,10 @@ async function sendGroupBookingConfirmationEmail(booking, showtime, seats, theat
     `;
 
     try {
-        // Chuẩn bị attachments với QR code
-        const attachments = [];
-        if (qrCodeBase64Raw) {
-            attachments.push({
-                content: qrCodeBase64Raw,
-                filename: 'qrcode.png',
-                type: 'image/png',
-                disposition: 'inline',
-                content_id: 'qrcode'
-            });
-        }
-
         await emailService.sendMail({
             to: booking.email,
             subject: `[Absolute Cinema] Xác nhận đặt chỗ - ${bookingCode}`,
-            html: htmlContent,
-            attachments: attachments.length > 0 ? attachments : undefined
+            html: htmlContent
         });
         console.log(`✅ Group booking confirmation email sent to ${booking.email}`);
         return { success: true, bookingCode };
